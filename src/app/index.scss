@@ -1,0 +1,139 @@
+body{
+  padding: 0;
+  margin: 0;
+}
+
+
+.layout {
+  z-index: 1;
+  position: relative;
+  display: flex;
+  flex-flow: column nowrap;
+  height: 100vh;
+  background-color: transparent;
+
+  .header,
+  .footer {
+    z-index: 1000;
+    position: relative;
+    display: flex;
+    width: 100vw;
+    height: 6%;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.6);
+    -webkit-backdrop-filter: blur(3px);
+    backdrop-filter: blur(3px);
+  }
+
+  .middle_content {
+    flex: 1;
+    display: flex;
+    position: relative;
+    justify-content: center;
+    align-items: center;
+    height: 88%;
+  }
+}
+
+#mainAudio {
+  display: none;
+}
+
+.phone_mask {
+  display: none;
+  text-align: center;
+}
+#bg{
+  background-image: url(./assets/images/bg.jpg); background-position: 60% 47.96%;
+}
+
+.box {
+  font-family: "SourceHanSans-Light";
+  display: flex
+;
+  justify-content: center;
+  align-items: center;
+  flex-flow: column nowrap;
+  width: 90%;
+  height: 90%;
+  color: #fff;
+  background-image: linear-gradient(90deg, rgba(99, 99, 99, 0.1), rgba(99, 99, 99, 0.1) 1px, transparent 0, transparent), linear-gradient(90deg, hsla(0, 0%, 100%, 0.1) -20%, transparent 15%), linear-gradient(0deg, hsla(0, 0%, 100%, 0.1), transparent 25%);
+  background-color: rgba(0, 0, 0, 0.5);
+  border-top: 1px solid rgba(255, 255, 255, 0.4941176471);
+  border-left: 1px solid rgba(255, 255, 255, 0.4941176471);
+  border-radius: 30px;
+  box-shadow: 0 0 10px 5px rgba(255, 255, 255, 0.15);
+  transition: background-color 0.5s, box-shadow 0.5s;
+  overflow: hidden;
+}
+
+
+.animate__animated {
+  animation-duration: 2s !important;
+}
+#bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-size: 105vw auto;
+  background-position: center;
+  background-repeat: no-repeat;
+  transition: -webkit-filter 0.8s;
+  transition: filter 0.8s;
+  transition: filter 0.8s, -webkit-filter 0.8s;
+  &.active {
+    filter: blur(3px);
+  }
+}
+#bg.active {
+  -webkit-filter: blur(3px);
+          filter: blur(3px);
+}
+
+#bgMask {
+  z-index: -999;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgb(0, 0, 0);
+  opacity: 0.2;
+  transition: opacity 0.8s;
+}
+#bgMask.active {
+  opacity: 0.6;
+}
+
+@media screen and (max-width: 992px) {
+  .bg_container #bg {
+    background-size: auto 110vh;
+  }
+}
+
+@media screen and (max-width: 992px) {
+  .phone_mask {
+    z-index: 5000;
+    position: absolute;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-flow: column nowrap;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    padding: 1rem;
+    color: #fff;
+    font-size: 1.6rem;
+    background-image: linear-gradient(#000, #000);
+
+    p {
+      font-size: 5rem;
+    }
+  }
+}
