@@ -5,6 +5,9 @@ import './index.scss';
 import Loading from "@/components/Loading/page";
 import { Provider } from 'react-redux';
 import store from '@/redux/index';
+
+
+
 // Functional component layout
 const Layout = ({ children }: any) => {
   const [initState, setInitState] = useState(false);
@@ -16,6 +19,7 @@ const Layout = ({ children }: any) => {
 
   return (
     <Provider store={store}>
+
     <html>
       <body>
       {/* Loading spinner */}

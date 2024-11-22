@@ -8,26 +8,48 @@ import {
   previousTrack, 
   setVolume 
 } from '@/redux/modules/musicPlayer/reducer';
-import AudioSpectrum from '../Spectrum/page';
+import { useAudio } from '@/contexts/AudioContext';
 
 const MusicPlayer: React.FC = () => {
-  const audioRef = useRef<HTMLAudioElement>(null);
   const dispatch = useAppDispatch();
   const { currentTrack, isPlaying, volume } = useAppSelector(state => state.musicPlayer);
+  const { setAudio } = useAudio();  // Audio context
+  const audioRef = useRef<HTMLAudioElement>(null);  // Ref for the audio element
+  const [hasUserInteracted, setHasUserInteracted] = useState(false);  // Track user interaction
+
+  const handlePlayClick = () => {
+    setHasUserInteracted(true);
+    dispatch(togglePlay());  // Toggle play/pause on click
+  };
 
   useEffect(() => {
-    if (audioRef.current) {
-      // 处理播放状态
+    if (hasUserInteracted && currentTrack && audioRef.current) {
+      // Set audio to context after user interaction
+      setAudio(audioRef.current);
+
+      // Set the audio source and volume
+      audioRef.current.src = currentTrack.url;
+      audioRef.current.volume = volume;
+
+      // Play or pause based on isPlaying
       if (isPlaying) {
         audioRef.current.play().catch(console.error);
       } else {
         audioRef.current.pause();
       }
-      // 设置音量
-      audioRef.current.volume = volume;
-    }
-  }, [isPlaying, volume, currentTrack?.url]);
 
+      return () => {
+        audioRef.current?.pause();
+      };
+    }
+  }, [currentTrack, isPlaying, volume, setAudio, hasUserInteracted]);
+
+  // Update the context audio instance with the audioRef when it changes
+  useEffect(() => {
+    if (audioRef.current && hasUserInteracted) {
+      setAudio(audioRef.current);
+    }
+  }, [audioRef.current, setAudio, hasUserInteracted]);
 
   if (!currentTrack) return null;
 
@@ -47,14 +69,8 @@ const MusicPlayer: React.FC = () => {
         </p>
       </div>
 
-      <audio 
-        ref={audioRef} 
-        src={currentTrack.url}
-      />
-      
-      { audioRef.current && (
-        <AudioSpectrum audioElement={audioRef.current} />
-      )}
+      {/* Audio element */}
+      <audio ref={audioRef} id="audio-element" />
 
       <div className="flex justify-between items-center mt-6">
         <button 
@@ -65,7 +81,7 @@ const MusicPlayer: React.FC = () => {
         </button>
 
         <button 
-          onClick={() => dispatch(togglePlay())} 
+          onClick={handlePlayClick}  // Set audio after user clicks play
           className="bg-blue-500 hover:bg-blue-600 rounded-full p-4 transition-colors"
         >
           {isPlaying ? <Pause /> : <Play />}
