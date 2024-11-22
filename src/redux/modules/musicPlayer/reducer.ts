@@ -26,13 +26,17 @@ interface MusicPlayerState {
   isPlaying: boolean;
   volume: number;
   playlist: Track[];
+  spectrumData: number[];
+  isAnalyzing: boolean;
 }
 
 const initialState: MusicPlayerState = {
   currentTrack: initialTracks[0],
   isPlaying: false,
   volume: 0.5,
-  playlist: initialTracks
+  playlist: initialTracks,
+  spectrumData: new Array(64).fill(0),
+  isAnalyzing: false
 };
 
 // 创建 Slice
@@ -67,6 +71,12 @@ const musicPlayerSlice = createSlice({
     },
     setVolume: (state, action: PayloadAction<number>) => {
       state.volume = action.payload;
+    },
+    updateSpectrumData: (state, action: PayloadAction<number[]>) => {
+      state.spectrumData = action.payload;
+    },
+    setAnalyzing: (state, action: PayloadAction<boolean>) => {
+      state.isAnalyzing = action.payload;
     }
   }
 });
@@ -77,7 +87,9 @@ export const {
   togglePlay, 
   nextTrack, 
   previousTrack, 
-  setVolume 
+  setVolume,
+  updateSpectrumData,
+  setAnalyzing 
 } = musicPlayerSlice.actions;
 
 export default musicPlayerSlice.reducer;
