@@ -1,19 +1,17 @@
-// store/store.ts
+// src/store/store.ts
 import { configureStore } from '@reduxjs/toolkit';
-import { musicReducer } from './modules/musicPlayer/reducer';
+import musicPlayerReducer from './modules/musicPlayer/reducer';
+
+const rootReducer = {
+  musicPlayer: musicPlayerReducer,
+};
 
 const store = configureStore({
-  reducer: {
-    musicPlayer: musicReducer, // Combine your reducers here when you add more slices
-  },
+  reducer: rootReducer,
 });
 
-export default store;
+// 定义 RootState 和 Dispatch 类型
+export type RootState = ReturnType<typeof store.getState>;
+export type AppDispatch = typeof store.dispatch;
 
-// RootState should reflect the structure of the store
-export interface RootState {
-  musicPlayer: {
-    songIndex: number;
-    isPlaying: boolean;
-  };
-}
+export default store;

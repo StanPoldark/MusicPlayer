@@ -21,13 +21,6 @@ const Layout = ({ children }: any) => {
       {/* Loading spinner */}
       <Loading initState={initState} />
       
-      {/* Mobile mask */}
-      <div className="phone_mask">
-        <p>:(</p>
-        <span>很抱歉，本站并不支持手机移动端访问，推荐使用 PC 端进行页面访问</span>
-        <span>We're sorry but the website doesn't support mobile phone, please change your device like PC to visit it.</span>
-      </div>
-      
       <TransitionGroup className='main-wrapper animate__animated animate__fadeIn'  id="bg">
         <CSSTransition
           timeout={3000}
