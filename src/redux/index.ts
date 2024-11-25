@@ -1,9 +1,10 @@
 // src/store/store.ts
 import { configureStore } from '@reduxjs/toolkit';
 import musicPlayerReducer from './modules/musicPlayer/reducer';
-
+import loginSlice from './modules/login/reducer';
 const rootReducer = {
   musicPlayer: musicPlayerReducer,
+  login:loginSlice
 };
 
 const store = configureStore({
