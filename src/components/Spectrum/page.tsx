@@ -38,12 +38,11 @@ const AudioSpectrum: React.FC = () => {
     if (canvasCtx) {
       canvasCtx.clearRect(0, 0, w, h); // 清除画布
   
-      // 静态生成频谱条，使用固定的高度
       for (let i = 0; i < alt; i++) {
-        const barHeight =  30; // 随机生成一个高度，范围在 20 到 70 之间
+        const barHeight =  30; 
         canvasCtx.fillStyle = "#bce5ef";
         canvasCtx.fillRect(x, h / 2 - barHeight / 8, barWidth, barHeight / 4); // 绘制频谱条
-        x += barWidth + 3; // 更新 x 坐标
+        x += barWidth + 3; 
       }
     } else {
       throw Error("Canvas context is null");
@@ -51,30 +50,39 @@ const AudioSpectrum: React.FC = () => {
   };
 
   const drawSpectrum = throttle((canvas: HTMLCanvasElement, arr: Uint8Array) => {
-   
-    
     const canvasCtx = canvas.getContext("2d");
     const w = canvas.width;
     const h = canvas.height;
     const alt = arr.length;
+    
     if (canvasCtx) {
       canvasCtx.clearRect(0, 0, w, h);
+      
+      // 找出数据的最大值，用于归一化
+      const maxValue = Math.max(...arr);
+      
       let barW = (w / alt) * 0.9;
-      let barH = 0;
       let x = 0;
-
-      // 绘制频谱条
+  
       for (let i = 0; i < alt; i++) {
-        barH = arr[i] + 30;
-        canvasCtx.fillStyle = "#bce5ef";
-        canvasCtx.fillRect(x, h / 2 - barH / 8, barW, barH / 4);
+        // 归一化并缩放频谱条高度
+        const normalizedHeight = (arr[i] / maxValue) * (h / 2);
+        
+        // 使用渐变颜色，低频和高频使用不同颜色
+        const gradient = canvasCtx.createLinearGradient(0, 0, 0, h);
+        gradient.addColorStop(0, '#bce5ef');
+        gradient.addColorStop(1, '#3498db');
+        
+        canvasCtx.fillStyle = gradient;
+        canvasCtx.fillRect(x, h / 2 - normalizedHeight / 2, barW, normalizedHeight);
+        
         x += barW + 3;
       }
     } else {
       throw Error("Canvas context is null");
     }
   }, 16);
-
+  
 
   const fakeVisualize = () => {
     if (!canvasRef.current) return;

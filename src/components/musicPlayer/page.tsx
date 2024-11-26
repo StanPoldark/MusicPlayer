@@ -13,67 +13,90 @@ import { useAudio } from '@/contexts/AudioContext';
 const MusicPlayer: React.FC = () => {
   const dispatch = useAppDispatch();
   const { currentTrack, isPlaying, volume } = useAppSelector(state => state.musicPlayer);
-  const { setAudio } = useAudio();  // Audio context
-  const audioRef = useRef<HTMLAudioElement>(null);  // Ref for the audio element
-  const [hasUserInteracted, setHasUserInteracted] = useState(false);  // Track user interaction
-  const [progress, setProgress] = useState(0); // Current progress (seconds)
-  const [duration, setDuration] = useState(0); // Audio duration (seconds)
-  const [isDragging, setIsDragging] = useState(false); // Whether the user is dragging the progress bar
+  const { setAudio } = useAudio();
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [hasUserInteracted, setHasUserInteracted] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
 
   const handlePlayClick = () => {
     setHasUserInteracted(true);
-    dispatch(togglePlay());  // Toggle play/pause on click
+    dispatch(togglePlay());
   };
 
+  // 音频元数据和进度处理
   useEffect(() => {
-    if (hasUserInteracted && currentTrack && audioRef.current) {
-      // Set audio to context after user interaction
-      setAudio(audioRef.current);
+    const audioElement = audioRef.current;
+    if (!audioElement || !hasUserInteracted) return;
 
-      // Set the audio source and volume
-      audioRef.current.src = currentTrack.url;
-      audioRef.current.volume = volume;
+    // 设置音频上下文
+    setAudio(audioElement);
 
-      // Play or pause based on isPlaying
-      if (isPlaying) {
-        audioRef.current.play().catch(console.error);
-      } else {
-        audioRef.current.pause();
+    // 加载元数据
+    const handleLoadedMetadata = () => {
+      setDuration(audioElement.duration || 0);
+    };
+
+    // 进度更新
+    const handleTimeUpdate = () => {
+      if (!isDragging) {
+        setProgress(audioElement.currentTime || 0);
       }
+    };
 
-      return () => {
-        audioRef.current?.pause();
-      };
-    }
-  }, [currentTrack, isPlaying, volume, setAudio, hasUserInteracted]);
+    // 播放结束处理
+    const handleEnded = () => {
+      dispatch(nextTrack()); // 自动播放下一首
+    };
 
+    // 添加事件监听
+    audioElement.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audioElement.addEventListener('timeupdate', handleTimeUpdate);
+    audioElement.addEventListener('ended', handleEnded);
+
+    // 清理函数
+    return () => {
+      audioElement.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audioElement.removeEventListener('timeupdate', handleTimeUpdate);
+      audioElement.removeEventListener('ended', handleEnded);
+    };
+  }, [hasUserInteracted, isDragging, dispatch, setAudio]);
+
+  // 音频播放控制
   useEffect(() => {
-    if (audioRef.current && hasUserInteracted) {
-      setAudio(audioRef.current);
-  
-      // 设置元数据加载时的音频时长
-      audioRef.current.onloadedmetadata = () => {
-        setDuration(audioRef.current?.duration || 0);
-      };
-  
-      // 更新播放进度
-      audioRef.current.ontimeupdate = () => {
-        if (!isDragging) {
-          setProgress(audioRef.current?.currentTime || 0);
-        }
-      };
-  
-      // 检查播放结束时重置进度
-      audioRef.current.onended = () => {
-        dispatch(togglePlay()); // 切换到暂停状态
-        setProgress(0); // 进度条归零
-      };
-    }
-  }, [audioRef.current, setAudio, hasUserInteracted, isDragging, dispatch]);
+    const audioElement = audioRef.current;
+    if (!audioElement || !hasUserInteracted || !currentTrack) return;
 
+    let srcPath = decodeURIComponent(audioElement.src.replace(window.location.origin, ''));
+    srcPath = decodeURIComponent(srcPath.replace(/^\//, '')); 
+    if (srcPath !== currentTrack.url) {
+      console.log(srcPath); // 解码后的路径
+      console.log(currentTrack.url); // 未编码的路径
+      audioElement.src = currentTrack.url;
+      setProgress(0);
+    }
+    // 设置音量
+    audioElement.volume = volume;
+
+    // 精确控制播放状态
+    if (isPlaying) {
+      // 确保只在暂停时才播放
+      if (audioElement.paused) {
+        audioElement.play().catch(error => {
+          console.error('播放失败:', error);
+        });
+      }
+    } else {
+      // 确保只在播放时才暂停
+      if (!audioElement.paused) {
+        audioElement.pause();
+      }
+    }
+  }, [currentTrack?.url, isPlaying, volume, hasUserInteracted]);
   if (!currentTrack) return null;
 
-  // Format time in mm:ss
+  // 格式化时间
   const formatTime = (time: number) => {
     const minutes = Math.floor(time / 60);
     const seconds = Math.floor(time % 60);
@@ -96,7 +119,6 @@ const MusicPlayer: React.FC = () => {
         </p>
       </div>
 
-      {/* Audio element */}
       <audio ref={audioRef} id="audio-element" />
 
       <div className="flex justify-between items-center mt-6">
@@ -135,13 +157,13 @@ const MusicPlayer: React.FC = () => {
           value={progress}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
             const newProgress = parseFloat(e.target.value);
-            setProgress(newProgress); // 更新进度条的视觉效果
+            setProgress(newProgress);
           }}
           onMouseDown={() => setIsDragging(true)}
           onMouseUp={(e: React.MouseEvent<HTMLInputElement>) => {
             const newProgress = parseFloat(e.currentTarget.value);
             if (audioRef.current) {
-              audioRef.current.currentTime = newProgress; // 拖动完成后更新音频播放位置
+              audioRef.current.currentTime = newProgress;
             }
             setIsDragging(false);
           }}
@@ -149,13 +171,12 @@ const MusicPlayer: React.FC = () => {
           onTouchEnd={(e: React.TouchEvent<HTMLInputElement>) => {
             const newProgress = parseFloat(e.currentTarget.value);
             if (audioRef.current) {
-              audioRef.current.currentTime = newProgress; // 拖动完成后更新音频播放位置
+              audioRef.current.currentTime = newProgress;
             }
             setIsDragging(false);
           }}
           className="w-full"
         />
-
       </div>
 
       <div className="mt-4">
@@ -172,5 +193,4 @@ const MusicPlayer: React.FC = () => {
     </div>
   );
 };
-
 export default MusicPlayer;

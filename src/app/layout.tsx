@@ -7,7 +7,6 @@ import { Provider } from 'react-redux';
 import store from '@/redux/index';
 
 
-
 // Functional component layout
 const Layout = ({ children }: any) => {
   const [initState, setInitState] = useState(false);
