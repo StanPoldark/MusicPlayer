@@ -1,40 +1,65 @@
-import request from '@/utils/request';
+import axios from 'axios';
 
-export function getSongByID(ids: number) {
-  return request({
-    method: 'GET',
-    url: '/song/detail',
-    params: { ids },
-  });
-}
+// 使用拦截器配置 axios 实例
+const apiClient = axios.create({
+  baseURL: 'https://neteasecloudmusicapi-ashen-gamma.vercel.app',
+  timeout: 10000, // 10秒超时
+  headers: {
+    'Content-Type': 'application/json',
+  }
+});
 
-export function getSongFileUrl(id: number) {
-  return request({
-    method: 'GET',
-    url: '/song/url',
-    params: { id },
-  });
-}
+// 请求拦截器：添加公共参数和错误处理
+apiClient.interceptors.request.use(
+  config => {
+    // 为每个请求添加时间戳，防止缓存
+    config.params = {
+      ...config.params,
+      timestamp: Date.now()
+    };
+    return config;
+  },
+  error => Promise.reject(error)
+);
 
-export function getLyricByLink(id: number) {
-  return request({
-    method: 'GET',
-    url: '/lyric',
-    params: { id },
-  });
-}
+// 响应拦截器：统一处理错误
+apiClient.interceptors.response.use(
+  response => response.data,
+  error => {
+    const errorMsg = error.response?.data?.message || '请求失败';
+    console.error('API Error:', errorMsg);
+    return Promise.reject(new Error(errorMsg));
+  }
+);
 
-export function addPlayList(data: object) {
-  return request({
-    method: 'POST',
-    url: '/api/addPlayList',
-    data,
-  });
-}
 
-export function getInfo() {
-  return request({
-    method: 'GET',
-    url: '/user/subcount',
-  });
-}
+const handleApiCall = async <T>(apiCall: () => Promise<T>): Promise<T> => {
+  try {
+    return await apiCall();
+  } catch (error) {
+    console.error('API Call Error:', error);
+    throw error;
+  }
+};
+
+// Function to get login state
+export const getUserMusicList = async (uid: number): Promise<any> => {
+  return handleApiCall(() => 
+    apiClient.get('/user/playlist', {
+      params: { uid, limit: 100 }
+    })
+  );
+};
+
+
+export const getDetailList = async ( id: number | string,
+  offset?: number,
+  limit: number = 20): Promise<any> => {
+  return handleApiCall(() => 
+    apiClient.get('/playlist/track/all', {
+      params: { id, offset, limit  }
+    })
+  );
+};
+
+

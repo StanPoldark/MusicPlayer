@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useRef, useState } from 'react';
-import { Play, Pause, SkipForward, SkipBack } from 'lucide-react';
 import { useAppSelector, useAppDispatch } from '@/hooks/hooks';
+import { Play, Pause, SkipForward, SkipBack } from 'lucide-react';
 import {
   togglePlay,
   nextTrack,
