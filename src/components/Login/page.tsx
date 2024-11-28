@@ -22,6 +22,9 @@ const Login = () => {
   const [loginStatus, setLoginStatus] = useState<LoginStatus>(LoginStatus.INITIAL);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // Flag to manage QR code generation state
+  const isQRCodeGenerating = useRef<boolean>(false);
+
   // Using useRef to store timers, preventing re-renders
   const pollingIntervalRef = useRef<NodeJS.Timer | null>(null);
   const pollingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -83,27 +86,27 @@ const Login = () => {
     setLoginStatus(LoginStatus.GENERATING_QR);
     setErrorMessage(null);
     cleanupPolling();
-
+  
     try {
       // Get QR code key
       const keyResponse = await loginByQRCode();
       const key = keyResponse?.data?.unikey;
-
+  
       if (!key) {
         throw new Error('Failed to get QR code key');
       }
-
+  
       // Get QR code image
       const qrCodeResponse = await getQRCode(key);
       const qrCodeImg = qrCodeResponse?.data?.qrimg;
-
+  
       if (!qrCodeImg) {
         throw new Error('Failed to generate QR code');
       }
-
+  
       setQrImg(qrCodeImg);
-      setLoginStatus(LoginStatus.WAITING_SCAN);
-
+      setLoginStatus(LoginStatus.WAITING_SCAN); // 更改状态为等待扫码
+  
       // Set up polling timeout
       const timeout = setTimeout(() => {
         message.error('Login timeout. Please try again.');
@@ -111,9 +114,10 @@ const Login = () => {
         cleanupPolling();
       }, 300000); // 5 minutes
       pollingTimeoutRef.current = timeout;
-
+  
       // Set up polling interval
       const interval = setInterval(async () => {
+        // 移除 isQRCodeGenerating.current 检查，直接使用 LoginStatus
         try {
           const response = await checkQRCodeState(key);
           
@@ -128,6 +132,7 @@ const Login = () => {
               cleanupPolling();
               break;
             case 801: // Waiting for scan
+              // 保持在等待扫码状态
               setLoginStatus(LoginStatus.WAITING_SCAN);
               break;
             default:
@@ -140,7 +145,6 @@ const Login = () => {
         }
       }, 3000);
       pollingIntervalRef.current = interval;
-
     } catch (error) {
       console.error('Error during QR code login:', error);
       message.error(error instanceof Error ? error.message : 'Login failed');
@@ -149,6 +153,7 @@ const Login = () => {
       cleanupPolling();
     }
   };
+
 
   const handleLogout = async () => {
     try {
@@ -167,76 +172,49 @@ const Login = () => {
     }
   };
 
-  // 仅在未登录时显示 Login via QR Code
-  const renderLoginButton = () => {
-    switch (loginStatus) {
-      case LoginStatus.INITIAL:
-        return (
-          <button
-            onClick={startQRCodeLogin}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-          >
-            Login via QR Code
-          </button>
-        );
-      
-      case LoginStatus.GENERATING_QR:
-        return (
-          <button 
-            disabled 
-            className="px-4 py-2 bg-gray-400 text-white rounded"
-          >
+const handleBackgroundClick = (event: React.MouseEvent) => {
+  // Check if the click is outside the QR code image container
+  if (event.target === event.currentTarget) {
+    setLoginStatus(LoginStatus.INITIAL); // Reset to initial state
+    setQrImg(''); // Clear the QR image
+    cleanupPolling(); // Clear the polling intervals and timeouts
+    // 移除 isQRCodeGenerating.current = false
+  }
+};
+
+const renderQRCodeSection = () => {
+  // 只有在等待扫码或生成二维码时才显示二维码区域
+  if (loginStatus !== LoginStatus.WAITING_SCAN && loginStatus !== LoginStatus.GENERATING_QR) {
+    return null;
+  }
+
+  return (
+    <div 
+      className="fixed top-0 left-0 right-0 bottom-0 flex items-center justify-center bg-black bg-opacity-50"
+      onClick={handleBackgroundClick} // Detect click on the background
+    >
+      <div className="mb-6 h-48 flex items-center justify-center bg-white p-4 rounded-lg shadow-lg" onClick={(e) => e.stopPropagation()}>
+        {loginStatus === LoginStatus.GENERATING_QR ? (
+          <div className="w-48 h-48 bg-gray-200 flex items-center justify-center text-gray-500">
             Generating QR Code...
-          </button>
-        );
-      
-      case LoginStatus.WAITING_SCAN:
-        return (
-          <button 
-            disabled 
-            className="px-4 py-2 bg-yellow-500 text-white rounded"
-          >
-            Waiting for Scan
-          </button>
-        );
-      
-      default:
-        return null; // 登录成功后不显示按钮
-    }
-  };
-
-  // 仅在未登录时显示 QR 码
-  const renderQRCodeSection = () => {
-    if (loginStatus === LoginStatus.LOGGED_IN) {
-      return null;
-    }
-
-    return (
-      <div className="mb-6 h-48 flex items-center justify-center">
-        {loginStatus === LoginStatus.WAITING_SCAN && qrImg ? (
+          </div>
+        ) : (
           <img 
             src={qrImg} 
             alt="QR Code" 
             className="mx-auto w-48 h-48 object-contain" 
           />
-        ) : (
-          <div className="w-48 h-48 bg-gray-200 flex items-center justify-center text-gray-500">
-            {loginStatus === LoginStatus.INITIAL 
-              ? '' 
-              : 'Generating QR Code...'}
-          </div>
         )}
       </div>
-    );
-  };
+    </div>
+  );
+};
 
-  // 如果已登录，只显示用户信息和登出按钮
   if (loginStatus === LoginStatus.LOGGED_IN) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
-        <div className="p-8 bg-white rounded-lg shadow-md w-80">
-          <h2 className="text-2xl font-bold mb-6 text-center">Welcome, {userInfo?.nickname}</h2>
-          <div className="flex flex-col gap-4">
+      <div className="flex flex-col items-center justify-center ">
+        <div className="p-8 rounded-lg shadow-md w-80">
+          <div className="flex justify-center flex-row gap-4">
             <button 
               disabled 
               className="px-4 py-2 bg-green-500 text-white rounded"
@@ -255,22 +233,22 @@ const Login = () => {
     );
   }
 
-  // 未登录时的默认渲染
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
-      <div className="p-8 bg-white rounded-lg shadow-md w-80">
-        
+    <div className="flex flex-col items-center justify-center">
+      <div className="p-8 rounded-lg shadow-md w-80">
         {renderQRCodeSection()}
-
         {errorMessage && (
           <div className="text-red-500 text-center mb-4">
             {errorMessage}
           </div>
         )}
-
-        <div className="flex flex-col gap-4">
-          {renderLoginButton()}
-        </div>
+        <button
+          onClick={startQRCodeLogin}
+          disabled={isQRCodeGenerating.current}
+          className="px-4 py-2 bg-blue-500 text-white rounded w-full hover:bg-blue-600"
+        >
+          {loginStatus === LoginStatus.GENERATING_QR ? 'Generating QR...' : 'Start QR Code Login'}
+        </button>
       </div>
     </div>
   );

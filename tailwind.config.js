@@ -1,9 +1,7 @@
-/** @type {import('tailwindcss').Config} */
+// tailwind.config.js
 module.exports = {
   content: [
-    "./pages/**/*.{js,ts,jsx,tsx}",
-    "./components/**/*.{js,ts,jsx,tsx}",
-    "./node_modules/antd/**/*.js", // 包括 Ant Design 动态生成的样式
+    "./src/**/*.{html,js,jsx,ts,tsx}", // Adjust the paths according to your project
   ],
   theme: {
     extend: {},

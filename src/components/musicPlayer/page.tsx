@@ -1,24 +1,36 @@
 "use client";
-import React, { useEffect, useRef, useState } from 'react';
-import { useAppSelector, useAppDispatch } from '@/hooks/hooks';
-import { Play, Pause, SkipForward, SkipBack } from 'lucide-react';
+import React, { useEffect, useRef, useState } from "react";
+import { useAppSelector, useAppDispatch } from "@/hooks/hooks";
+import AudioSpectrum from "@/components/Spectrum/page";
+import {
+  Play,
+  Pause,
+  SkipForward,
+  SkipBack,
+  Volume2,
+  Volume1,
+  VolumeX,
+} from "lucide-react";
 import {
   togglePlay,
   nextTrack,
   previousTrack,
-  setVolume
-} from '@/redux/modules/musicPlayer/reducer';
-import { useAudio } from '@/contexts/AudioContext';
-
+  setVolume,
+} from "@/redux/modules/musicPlayer/reducer";
+import { useAudio } from "@/contexts/AudioContext";
+import "./index.scss";
 const MusicPlayer: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { currentTrack, isPlaying, volume } = useAppSelector(state => state.musicPlayer);
+  const { currentTrack, isPlaying, volume } = useAppSelector(
+    (state) => state.musicPlayer
+  );
   const { setAudio } = useAudio();
   const audioRef = useRef<HTMLAudioElement>(null);
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [isVolumeVisible, setIsVolumeVisible] = useState(false); // 控制音量条显示
 
   const handlePlayClick = () => {
     setHasUserInteracted(true);
@@ -51,15 +63,15 @@ const MusicPlayer: React.FC = () => {
     };
 
     // 添加事件监听
-    audioElement.addEventListener('loadedmetadata', handleLoadedMetadata);
-    audioElement.addEventListener('timeupdate', handleTimeUpdate);
-    audioElement.addEventListener('ended', handleEnded);
+    audioElement.addEventListener("loadedmetadata", handleLoadedMetadata);
+    audioElement.addEventListener("timeupdate", handleTimeUpdate);
+    audioElement.addEventListener("ended", handleEnded);
 
     // 清理函数
     return () => {
-      audioElement.removeEventListener('loadedmetadata', handleLoadedMetadata);
-      audioElement.removeEventListener('timeupdate', handleTimeUpdate);
-      audioElement.removeEventListener('ended', handleEnded);
+      audioElement.removeEventListener("loadedmetadata", handleLoadedMetadata);
+      audioElement.removeEventListener("timeupdate", handleTimeUpdate);
+      audioElement.removeEventListener("ended", handleEnded);
     };
   }, [hasUserInteracted, isDragging, dispatch, setAudio]);
 
@@ -68,8 +80,10 @@ const MusicPlayer: React.FC = () => {
     const audioElement = audioRef.current;
     if (!audioElement || !hasUserInteracted || !currentTrack) return;
 
-    let srcPath = decodeURIComponent(audioElement.src.replace(window.location.origin, ''));
-    srcPath = decodeURIComponent(srcPath.replace(/^\//, '')); 
+    let srcPath = decodeURIComponent(
+      audioElement.src.replace(window.location.origin, "")
+    );
+    srcPath = decodeURIComponent(srcPath.replace(/^\//, ""));
     if (srcPath !== currentTrack.url) {
       console.log(srcPath); // 解码后的路径
       console.log(currentTrack.url); // 未编码的路径
@@ -83,8 +97,8 @@ const MusicPlayer: React.FC = () => {
     if (isPlaying) {
       // 确保只在暂停时才播放
       if (audioElement.paused) {
-        audioElement.play().catch(error => {
-          console.error('播放失败:', error);
+        audioElement.play().catch((error) => {
+          console.error("播放失败:", error);
         });
       }
     } else {
@@ -104,93 +118,110 @@ const MusicPlayer: React.FC = () => {
   };
 
   return (
-    <div className="bg-gray-800 p-6 rounded-lg max-w-md mx-auto">
-      <div className="mb-4 text-center">
-        <img
-          src={currentTrack.coverUrl}
-          alt="Album Cover"
-          className="w-64 h-64 object-cover rounded-lg mx-auto"
-        />
-        <h2 className="text-white text-xl mt-4">
-          {currentTrack.title}
-        </h2>
-        <p className="text-gray-400">
-          {currentTrack.artist}
-        </p>
+    <div className="w-[80%] rounded-lg mx-auto">
+      <div className="flex text-center">
+      <span className="text-white w-[30%] flex items-center justify-center">{currentTrack.title}</span>
+        <AudioSpectrum />
       </div>
 
       <audio ref={audioRef} id="audio-element" />
 
-      <div className="flex justify-between items-center mt-6">
+      <div className="flex justify-between items-center mt-6 w-full">
+        {/* 小喇叭图标 */}
+        <button
+          onClick={() => setIsVolumeVisible(!isVolumeVisible)}
+          className="text-white hover:text-blue-500 transition-colors"
+        >
+          {volume === 0 ? (
+            <VolumeX size={32} />
+          ) : volume < 0.5 ? (
+            <Volume1 size={32} />
+          ) : (
+            <Volume2 size={32} />
+          )}
+        </button>
+
         <button
           onClick={() => dispatch(previousTrack())}
-          className="text-white hover:text-blue-500 transition-colors"
+          className="playButton"
         >
           <SkipBack size={32} />
         </button>
 
-        <button
-          onClick={handlePlayClick}
-          className="bg-blue-500 hover:bg-blue-600 rounded-full p-4 transition-colors"
-        >
+        <button onClick={handlePlayClick} className="playButton">
           {isPlaying ? <Pause /> : <Play />}
         </button>
 
+        <button onClick={() => dispatch(nextTrack())} className="playButton">
+          <SkipForward size={32} />
+        </button>
+
+        {/* 小喇叭图标 */}
         <button
-          onClick={() => dispatch(nextTrack())}
+          onClick={() => setIsVolumeVisible(!isVolumeVisible)}
           className="text-white hover:text-blue-500 transition-colors"
         >
-          <SkipForward size={32} />
+          {volume === 0 ? (
+            <VolumeX size={32} />
+          ) : volume < 0.5 ? (
+            <Volume1 size={32} />
+          ) : (
+            <Volume2 size={32} />
+          )}
         </button>
       </div>
 
       <div className="mt-4">
-        <div className="flex items-center justify-between text-gray-400 text-sm">
-          <span>{formatTime(progress)}</span>
-          <span>{formatTime(duration)}</span>
+        <div className="flex items-center justify-between text-gray-400 text-sm pb-3">
+          <span className="pr-2">{formatTime(progress)}</span>
+          <input
+            type="range"
+            min="0"
+            max={duration.toString()}
+            step="0.1"
+            value={progress}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+              const newProgress = parseFloat(e.target.value);
+              setProgress(newProgress);
+            }}
+            onMouseDown={() => setIsDragging(true)}
+            onMouseUp={(e: React.MouseEvent<HTMLInputElement>) => {
+              const newProgress = parseFloat(e.currentTarget.value);
+              if (audioRef.current) {
+                audioRef.current.currentTime = newProgress;
+              }
+              setIsDragging(false);
+            }}
+            onTouchStart={() => setIsDragging(true)}
+            onTouchEnd={(e: React.TouchEvent<HTMLInputElement>) => {
+              const newProgress = parseFloat(e.currentTarget.value);
+              if (audioRef.current) {
+                audioRef.current.currentTime = newProgress;
+              }
+              setIsDragging(false);
+            }}
+            className="w-full"
+          />
+          <span className="pl-2">{formatTime(duration)}</span>
         </div>
-        <input
-          type="range"
-          min="0"
-          max={duration.toString()}
-          step="0.1"
-          value={progress}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-            const newProgress = parseFloat(e.target.value);
-            setProgress(newProgress);
-          }}
-          onMouseDown={() => setIsDragging(true)}
-          onMouseUp={(e: React.MouseEvent<HTMLInputElement>) => {
-            const newProgress = parseFloat(e.currentTarget.value);
-            if (audioRef.current) {
-              audioRef.current.currentTime = newProgress;
-            }
-            setIsDragging(false);
-          }}
-          onTouchStart={() => setIsDragging(true)}
-          onTouchEnd={(e: React.TouchEvent<HTMLInputElement>) => {
-            const newProgress = parseFloat(e.currentTarget.value);
-            if (audioRef.current) {
-              audioRef.current.currentTime = newProgress;
-            }
-            setIsDragging(false);
-          }}
-          className="w-full"
-        />
       </div>
 
-      <div className="mt-4">
-        <input
-          type="range"
-          min="0"
-          max="1"
-          step="0.1"
-          value={volume}
-          onChange={(e) => dispatch(setVolume(parseFloat(e.target.value)))}
-          className="w-full"
-        />
+      <div className="mt-4 relative">
+        {/* 音量滚动条 */}
+        {isVolumeVisible && (
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.1"
+            value={volume}
+            onChange={(e) => dispatch(setVolume(parseFloat(e.target.value)))}
+            className="w-1 h-full bg-gray-500 rounded-lg"
+          />
+        )}
       </div>
     </div>
   );
 };
+
 export default MusicPlayer;

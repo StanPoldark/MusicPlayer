@@ -1,4 +1,6 @@
 import axios from 'axios';
+import qs from 'querystring';
+
 import { 
   QRCodeResponse, 
   LoginStateResponse, 
@@ -6,10 +8,15 @@ import {
   LogoutResponse 
 } from '@/redux/modules/types'; 
 
+axios.defaults.headers['Content-Type'] = 'application/x-www-form-urlencoded';
+axios.defaults.transformRequest = (data) => qs.stringify(data);
+axios.defaults.withCredentials = true; // 跨域
+
 // 使用拦截器配置 axios 实例
 const apiClient = axios.create({
   baseURL: 'https://neteasecloudmusicapi-ashen-gamma.vercel.app',
   timeout: 10000, // 10秒超时
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   }

@@ -1,9 +1,15 @@
 import axios from 'axios';
+import qs from 'querystring';
+
+axios.defaults.headers['Content-Type'] = 'application/x-www-form-urlencoded';
+axios.defaults.transformRequest = (data) => qs.stringify(data);
+axios.defaults.withCredentials = true; // 跨域
 
 // 使用拦截器配置 axios 实例
 const apiClient = axios.create({
   baseURL: 'https://neteasecloudmusicapi-ashen-gamma.vercel.app',
   timeout: 10000, // 10秒超时
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   }
@@ -46,7 +52,7 @@ const handleApiCall = async <T>(apiCall: () => Promise<T>): Promise<T> => {
 export const getUserMusicList = async (uid: number): Promise<any> => {
   return handleApiCall(() => 
     apiClient.get('/user/playlist', {
-      params: { uid, limit: 100 }
+      params: { uid, limit: 100, }
     })
   );
 };

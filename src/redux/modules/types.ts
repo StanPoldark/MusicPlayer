@@ -90,3 +90,14 @@ export type PlayerAction =
     message: string;
   }
   
+
+  export interface SimplifiedPlaylist {
+    id: number;
+    name: string;
+    coverImgUrl: string;
+    trackCount: number;
+    subscribed:boolean;
+    description:string;
+    [key: string]: any; // 可扩展字段
+  }
+  

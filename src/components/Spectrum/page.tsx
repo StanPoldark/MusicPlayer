@@ -153,7 +153,7 @@ const AudioSpectrum: React.FC = () => {
     <div className="relative w-full">
       <canvas
         ref={canvasRef}
-        className="w-full h-32 rounded-lg bg-black/5 backdrop-blur-sm"
+        className="w-full h-8 rounded-lg bg-black/5 backdrop-blur-sm"
         style={{
           boxShadow:
             "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",

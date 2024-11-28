@@ -8,5 +8,6 @@ export default function simplifySongListResult(
     const name = filterList[i];
     newVal[name] = val[name];
   }
+
   return newVal;
 }

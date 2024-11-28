@@ -2,7 +2,7 @@
 import React from "react";
 import MusicPlayer from "@/components/MusicPlayer/page";
 import Login from "@/components/Login/page";
-import AudioSpectrum from "@/components/Spectrum/page";
+
 import { AudioProvider } from "@/contexts/AudioContext";
 import TrackList from "@/components/TrackList/page";
 import { Row, Col } from "antd";
@@ -10,35 +10,26 @@ import "./index.scss";
 export default function HomePage() {
   return (
     <AudioProvider>
-      <div style={{ margin: "20px", width: "100%", height: "100%" }}>
+      <div style={{ margin: "20px", width: "80%", height: "100%" }}>
         {/* 上面一行：2个 Col */}
-        <Row gutter={16}>
-          <Col span={12} className="gridbox">
-            <div className="box" style={{ height: "10vh", width: "20vw" }}>
-              <AudioSpectrum />
+        <Row gutter={16} style={{}}>
+          <Col span={8}  >
+          <div className="box" style={{  }}>
+              <Login />
+              <MusicPlayer />
             </div>
-          </Col>
-          <Col span={12}>
-            <div>Column 2</div>
           </Col>
         </Row>
 
-        {/* 下面一行：3个 Col */}
-        <Row gutter={16}>
+        <Row gutter={24} style={{ height: "66%" }}>
           <Col span={8}>
-            <div className="box" style={{ height: "60vh" }}>
+            <div className="box" style={{ }}>
             <TrackList />
             </div>
           
           </Col>
           <Col span={8}>
-            <div className="box" style={{ height: "60vh" }}>
-              <Login />
-              <MusicPlayer />
-            </div>
-          </Col>
-          <Col span={8}>
-            <div>Column 3</div>
+
           </Col>
         </Row>
       </div>
