@@ -1,5 +1,11 @@
 "use client";
-import React, { useEffect, useRef, useState } from "react";
+import React, {
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+  useMemo,
+} from "react";
 import { useAppSelector, useAppDispatch } from "@/hooks/hooks";
 import AudioSpectrum from "@/components/Spectrum/page";
 import {
@@ -19,6 +25,7 @@ import {
 } from "@/redux/modules/musicPlayer/reducer";
 import { useAudio } from "@/contexts/AudioContext";
 import "./index.scss";
+
 const MusicPlayer: React.FC = () => {
   const dispatch = useAppDispatch();
   const { currentTrack, isPlaying, volume } = useAppSelector(
@@ -30,44 +37,53 @@ const MusicPlayer: React.FC = () => {
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
-  const [isVolumeVisible, setIsVolumeVisible] = useState(false); // 控制音量条显示
+  const [isVolumeVisible, setIsVolumeVisible] = useState(false);
+  const volumeContainerRef = useRef<HTMLDivElement>(null);
 
-  const handlePlayClick = () => {
+  // Memoized time formatting function
+  const formatTime = useCallback((time: number) => {
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+  }, []);
+
+  // Memoized volume icon selection
+  const VolumeIcon = useMemo(() => {
+    if (volume === 0) return VolumeX;
+    return volume < 0.5 ? Volume1 : Volume2;
+  }, [volume]);
+
+  // Consolidated play click handler
+  const handlePlayClick = useCallback(() => {
     setHasUserInteracted(true);
     dispatch(togglePlay());
-  };
+  }, [dispatch]);
 
-  // 音频元数据和进度处理
+  // Audio metadata and progress handling
   useEffect(() => {
     const audioElement = audioRef.current;
     if (!audioElement || !hasUserInteracted) return;
 
-    // 设置音频上下文
     setAudio(audioElement);
 
-    // 加载元数据
     const handleLoadedMetadata = () => {
       setDuration(audioElement.duration || 0);
     };
 
-    // 进度更新
     const handleTimeUpdate = () => {
       if (!isDragging) {
         setProgress(audioElement.currentTime || 0);
       }
     };
 
-    // 播放结束处理
     const handleEnded = () => {
-      dispatch(nextTrack()); // 自动播放下一首
+      dispatch(nextTrack());
     };
 
-    // 添加事件监听
     audioElement.addEventListener("loadedmetadata", handleLoadedMetadata);
     audioElement.addEventListener("timeupdate", handleTimeUpdate);
     audioElement.addEventListener("ended", handleEnded);
 
-    // 清理函数
     return () => {
       audioElement.removeEventListener("loadedmetadata", handleLoadedMetadata);
       audioElement.removeEventListener("timeupdate", handleTimeUpdate);
@@ -75,71 +91,139 @@ const MusicPlayer: React.FC = () => {
     };
   }, [hasUserInteracted, isDragging, dispatch, setAudio]);
 
-  // 音频播放控制
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        volumeContainerRef.current &&
+        !volumeContainerRef.current.contains(event.target as Node)
+      ) {
+        setIsVolumeVisible(false);
+      }
+    };
+
+    // 在文档上添加点击事件监听器
+    document.addEventListener("mousedown", handleClickOutside);
+
+    // 清理函数
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  // Audio playback control
   useEffect(() => {
     const audioElement = audioRef.current;
     if (!audioElement || !hasUserInteracted || !currentTrack) return;
 
-    let srcPath = decodeURIComponent(
-      audioElement.src.replace(window.location.origin, "")
-    );
-    srcPath = decodeURIComponent(srcPath.replace(/^\//, ""));
-    if (srcPath !== currentTrack.url) {
-      console.log(srcPath); // 解码后的路径
-      console.log(currentTrack.url); // 未编码的路径
-      audioElement.src = currentTrack.url;
-      setProgress(0);
+    const needUpdateSource = audioElement.src !== currentTrack.url;
+
+    if (needUpdateSource) {
+      try {
+        audioElement.src = currentTrack.url;
+        audioElement.crossOrigin = "anonymous";
+        setProgress(0);
+      } catch (error) {
+        console.error("Failed to set audio source:", error);
+        return;
+      }
     }
-    // 设置音量
+
     audioElement.volume = volume;
 
-    // 精确控制播放状态
-    if (isPlaying) {
-      // 确保只在暂停时才播放
-      if (audioElement.paused) {
-        audioElement.play().catch((error) => {
-          console.error("播放失败:", error);
-        });
-      }
-    } else {
-      // 确保只在播放时才暂停
-      if (!audioElement.paused) {
-        audioElement.pause();
-      }
+    const playAction = isPlaying ? audioElement.play() : audioElement.pause();
+
+    if (playAction instanceof Promise) {
+      playAction.catch((error) => {
+        console.error("Playback control error:", error);
+      });
     }
   }, [currentTrack?.url, isPlaying, volume, hasUserInteracted]);
-  if (!currentTrack) return null;
 
-  // 格式化时间
-  const formatTime = (time: number) => {
-    const minutes = Math.floor(time / 60);
-    const seconds = Math.floor(time % 60);
-    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
-  };
+  // Progress change handler with performance optimization
+  const handleProgressChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (!audioRef.current) return;
+
+      const newProgress = parseFloat(e.target.value);
+      setIsDragging(true);
+      setProgress(newProgress);
+
+      const timeoutId = setTimeout(() => {
+        if (audioRef.current) {
+          audioRef.current.currentTime = newProgress;
+          setIsDragging(false);
+        }
+      }, 100);
+
+      return () => clearTimeout(timeoutId);
+    },
+    []
+  );
+
+  // Volume change handler with safety checks
+  const handleVolumeChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const newVolume = parseFloat(e.target.value);
+      const safeVolume = Math.min(Math.max(newVolume, 0), 1);
+      dispatch(setVolume(safeVolume));
+    },
+    [dispatch]
+  );
+
+  // Early return if no track is selected
+  if (!currentTrack) return null;
 
   return (
     <div className="w-[80%] rounded-lg mx-auto">
       <div className="flex text-center">
-      <span className="text-white w-[30%] flex items-center justify-center">{currentTrack.title}</span>
+        <span className="text-white w-[30%] flex items-center justify-center">
+          {currentTrack.name}
+        </span>
         <AudioSpectrum />
       </div>
 
       <audio ref={audioRef} id="audio-element" />
 
-      <div className="flex justify-between items-center mt-6 w-full">
-        {/* 小喇叭图标 */}
-        <button
-          onClick={() => setIsVolumeVisible(!isVolumeVisible)}
-          className="text-white hover:text-blue-500 transition-colors"
-        >
-          {volume === 0 ? (
-            <VolumeX size={32} />
-          ) : volume < 0.5 ? (
-            <Volume1 size={32} />
-          ) : (
-            <Volume2 size={32} />
+      <div
+        className="flex justify-between items-center mt-6 w-full"
+        ref={volumeContainerRef}
+      >
+        <div className="relative">
+          {/* 音量按钮 */}
+          <button
+            onClick={() => setIsVolumeVisible(!isVolumeVisible)}
+            className="text-white hover:text-blue-500 transition-colors relative"
+          >
+            <VolumeIcon size={32} />
+          </button>
+
+          {/* 滑块 */}
+          {isVolumeVisible && (
+            <div
+              className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 transition-opacity duration-200 ease-in-out"
+              style={{ opacity: isVolumeVisible ? 1 : 0 }}
+            >
+              <div className="bg-gray-800 p-2 rounded-md shadow-lg">
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value={volume}
+                  onChange={handleVolumeChange}
+                  className="h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer transform origin-bottom-left w-32"
+                  style={{
+                    background: `linear-gradient(to right, 
+                #3B82F6 0%, 
+                #3B82F6 ${volume * 100}%, 
+                #E5E7EB ${volume * 100}%, 
+                #E5E7EB 100%)`,
+                  }}
+                />
+              </div>
+            </div>
           )}
-        </button>
+        </div>
 
         <button
           onClick={() => dispatch(previousTrack())}
@@ -156,18 +240,11 @@ const MusicPlayer: React.FC = () => {
           <SkipForward size={32} />
         </button>
 
-        {/* 小喇叭图标 */}
         <button
           onClick={() => setIsVolumeVisible(!isVolumeVisible)}
           className="text-white hover:text-blue-500 transition-colors"
         >
-          {volume === 0 ? (
-            <VolumeX size={32} />
-          ) : volume < 0.5 ? (
-            <Volume1 size={32} />
-          ) : (
-            <Volume2 size={32} />
-          )}
+          <VolumeIcon size={32} />
         </button>
       </div>
 
@@ -180,10 +257,7 @@ const MusicPlayer: React.FC = () => {
             max={duration.toString()}
             step="0.1"
             value={progress}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-              const newProgress = parseFloat(e.target.value);
-              setProgress(newProgress);
-            }}
+            onChange={handleProgressChange}
             onMouseDown={() => setIsDragging(true)}
             onMouseUp={(e: React.MouseEvent<HTMLInputElement>) => {
               const newProgress = parseFloat(e.currentTarget.value);
@@ -204,21 +278,6 @@ const MusicPlayer: React.FC = () => {
           />
           <span className="pl-2">{formatTime(duration)}</span>
         </div>
-      </div>
-
-      <div className="mt-4 relative">
-        {/* 音量滚动条 */}
-        {isVolumeVisible && (
-          <input
-            type="range"
-            min="0"
-            max="1"
-            step="0.1"
-            value={volume}
-            onChange={(e) => dispatch(setVolume(parseFloat(e.target.value)))}
-            className="w-1 h-full bg-gray-500 rounded-lg"
-          />
-        )}
       </div>
     </div>
   );

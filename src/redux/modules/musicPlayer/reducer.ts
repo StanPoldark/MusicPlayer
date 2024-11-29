@@ -6,18 +6,12 @@ import { Track } from '../types';
 const initialTracks: Track[] = [
   {
     id: 1,
-    title: "寰宇记书.mp3",
-    artist: "Moonlight Band",
+    name: "寰宇记书.mp3",
+    ar: ["Moonlight Band"],
     url: "寰宇记书.mp3",
-    coverUrl: "/covers/starry-night.jpg"
+    picUrl: "/covers/starry-night.jpg"
   },
-  {
-    id: 2,
-    title: "Ocean Waves",
-    artist: "Sea Sounds", 
-    url: "test.mp3",
-    coverUrl: "/covers/ocean-waves.jpg"
-  }
+
 ];
 
 // 定义初始状态
@@ -46,7 +40,6 @@ const musicPlayerSlice = createSlice({
   reducers: {
     setCurrentTrack: (state, action: PayloadAction<Track>) => {
       state.currentTrack = action.payload;
-      state.isPlaying = true;
     },
     togglePlay: (state) => {
       state.isPlaying = !state.isPlaying;

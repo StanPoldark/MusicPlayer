@@ -5,6 +5,8 @@ export interface Track {
   id: number;
   ar: string[]; // 艺术家名字数组
   picUrl: string; // 专辑封面图片 URL
+  url: string; // 音乐文件的 URL
+  [key: string]: any; // 可扩展字段
 }
 
 // 定义 API 返回的数据结构

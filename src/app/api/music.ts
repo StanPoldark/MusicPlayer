@@ -20,8 +20,7 @@ apiClient.interceptors.request.use(
   config => {
     // 为每个请求添加时间戳，防止缓存
     config.params = {
-      ...config.params,
-      timestamp: Date.now()
+      ...config.params
     };
     return config;
   },
@@ -64,6 +63,35 @@ export const getDetailList = async ( id: number | string,
   return handleApiCall(() => 
     apiClient.get('/playlist/track/all', {
       params: { id, offset, limit  }
+    })
+  );
+};
+
+
+
+export const getSongUrl = async (id: number): Promise<any> => {
+  return handleApiCall(() => 
+    apiClient.get('/song/url', {
+      params: { id }
+    })
+  );
+};
+
+export const checkSong = async (id: number): Promise<any> => {
+  return handleApiCall(() => 
+    apiClient.get('/check/music', {
+      params: { id }
+    })
+  );
+};
+
+
+
+
+export const getlyric = async (id: number): Promise<any> => {
+  return handleApiCall(() => 
+    apiClient.get('/lyric', {
+      params: { id }
     })
   );
 };

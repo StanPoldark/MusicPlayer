@@ -1,10 +1,11 @@
 "use client";
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useAppSelector, useAppDispatch } from "@/hooks/hooks";
-import { getUserMusicList, getDetailList } from "@/app/api/music";
+import { getUserMusicList, getDetailList, getSongUrl,checkSong,getlyric } from "@/app/api/music";
 import simplifySongListResult from "@/utils/SongList/simplifySongList";
-import { List, Avatar, Spin, message, Button } from "antd";
+import { List, Avatar, Spin, message } from "antd";
 import Image from "next/image";
+import { setCurrentTrack } from "@/redux/modules/musicPlayer/reducer";
 import {
   setSubscribedList,
   setCreatedList,
@@ -19,7 +20,6 @@ import {
   SwitcherOutlined,
   UnorderedListOutlined,
   AudioOutlined,
-  
 } from "@ant-design/icons";
 import "./index.scss";
 
@@ -121,21 +121,26 @@ const TrackList: React.FC = () => {
 
         setIsLoading(true);
         const res: TrackResponse = await getDetailList(id);
-        const songList: Track[] = res.songs.map((song: any) => ({
-          name: song.name,
-          id: song.id,
-          ar: song.ar.map((ar: any) => ar.name).join(", "),
-          picUrl: song.al.picUrl,
-        }));
-
-        // 保存歌曲列表到 Redux，并携带歌单ID
-        dispatch(
-          addTrackList({
-            playlistId: id,
-            tracks: songList,
+        // 等待所有异步操作完成后再保存到 Redux
+        const songList: Track[] = await Promise.all(
+          res.songs.map(async (song: any): Promise<Track> => {
+            return {
+              name: song.name,
+              id: song.id,
+              ar: song.ar.map((ar: any) => ar.name).join(", "),
+              picUrl: song.al.picUrl,
+              url: "", // 访问返回对象中的 data.url
+            };
           })
         );
 
+        // 保存歌曲列表到 Redux，并携带歌单 ID
+        dispatch(
+          addTrackList({
+            playlistId: id,
+            tracks: songList, // 确保是完整的 Track 数组
+          })
+        );
         setDisplayMode("tracks");
         setCurrentPlaylistId(id);
       } catch (error) {
@@ -180,6 +185,31 @@ const TrackList: React.FC = () => {
     [fetchTrackData]
   );
 
+  const handleSongClick = useCallback(
+    async (track: Track) => {
+      try {
+        // Fetch song URL
+        const songAvailableData = await checkSong(track.id);
+        const songLyric = await getlyric(track.id);
+        if(!songAvailableData.success){
+          alert("很抱歉，该歌曲因版权限制无法播放。");
+          return false;
+        }
+        const songData = await getSongUrl(track.id);
+        const updatedTrack = {
+          ...track,
+          url: songData.data[0].url, // Safely add the URL to a new object
+          lyric: songLyric.lrc.lyric        
+        };
+        // Dispatch the updated track as the current track
+        dispatch(setCurrentTrack(updatedTrack));
+      } catch (error) {
+        console.error("Error fetching song URL:", error);
+      }
+    },
+    [dispatch] // Include only relevant dependencies
+  );
+
   const currentTrackList = useMemo(() => {
     if (displayMode === "tracks" && currentPlaylistId) {
       const trackListItem = trackLists.find(
@@ -217,7 +247,10 @@ const TrackList: React.FC = () => {
           itemLayout="horizontal"
           dataSource={currentTrackList}
           renderItem={(track) => (
-            <List.Item style={{ paddingInlineStart: 20 }}>
+            <List.Item
+              style={{ paddingInlineStart: 20 }}
+              onClick={() => handleSongClick(track)}
+            >
               <List.Item.Meta
                 avatar={
                   <Avatar
@@ -252,56 +285,55 @@ const TrackList: React.FC = () => {
 
     return (
       <List
-      className="trackList"
-      itemLayout="horizontal"
-      dataSource={displayList}
-      renderItem={(track) => (
-        <List.Item
-          onClick={() => handleItemClick(track.id)}
-          style={{ cursor: "pointer", paddingInlineStart: 20 }}
-        >
-          <List.Item.Meta
-            avatar={
-              <div className="relative w-16 h-16">
-                <Image
-                  src={track.coverImgUrl || '/placeholder-image.png'}
-                  alt={`Cover for ${track.name}`}
-                  fill
-                  style={{ 
-                    objectFit: 'cover', 
-                    borderRadius: '4px' 
-                  }}
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  placeholder="blur"
-                  blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
-                />
-              </div>
-            }
-            title={<span style={{ color: "white" }}>{track.name}</span>}
-            description={
-              <span
-                style={{ color: "white" }}
-              >{`Tracks: ${track.trackCount}`}</span>
-            }
-          />
-        </List.Item>
-      )}
-      style={{
-        maxHeight: "400px",
-        overflowY: "auto",
-        color: "white",
-      }}
-    />
-  );
-}, [
-  isLoading,
-  error,
-  displayList,
-  displayMode,
-  currentTrackList,
-  handleItemClick,
-]);
-
+        className="trackList"
+        itemLayout="horizontal"
+        dataSource={displayList}
+        renderItem={(track) => (
+          <List.Item
+            onClick={() => handleItemClick(track.id)}
+            style={{ cursor: "pointer", paddingInlineStart: 20 }}
+          >
+            <List.Item.Meta
+              avatar={
+                <div className="relative w-16 h-16">
+                  <Image
+                    src={track.coverImgUrl || "/placeholder-image.png"}
+                    alt={`Cover for ${track.name}`}
+                    fill
+                    style={{
+                      objectFit: "cover",
+                      borderRadius: "4px",
+                    }}
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    placeholder="blur"
+                    blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+                  />
+                </div>
+              }
+              title={<span style={{ color: "white" }}>{track.name}</span>}
+              description={
+                <span
+                  style={{ color: "white" }}
+                >{`Tracks: ${track.trackCount}`}</span>
+              }
+            />
+          </List.Item>
+        )}
+        style={{
+          maxHeight: "400px",
+          overflowY: "auto",
+          color: "white",
+        }}
+      />
+    );
+  }, [
+    isLoading,
+    error,
+    displayList,
+    displayMode,
+    currentTrackList,
+    handleItemClick,
+  ]);
 
   return (
     <div className="relative w-full" style={{ width: "100%", height: "100%" }}>
