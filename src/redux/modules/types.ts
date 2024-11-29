@@ -1,10 +1,15 @@
 // src/types/music.ts
+// 定义单个音乐条目的类型
 export interface Track {
+  name: string;
   id: number;
-  title: string;
-  artist: string;
-  url: string;
-  coverUrl: string;
+  ar: string[]; // 艺术家名字数组
+  picUrl: string; // 专辑封面图片 URL
+}
+
+// 定义 API 返回的数据结构
+export interface TrackResponse {
+  songs: Track[];
 }
 
 export interface PlayerState {

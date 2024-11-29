@@ -3,10 +3,12 @@ import { configureStore } from '@reduxjs/toolkit';
 import musicPlayerReducer from './modules/musicPlayer/reducer';
 import loginSlice from './modules/login/reducer';
 import playlistSlice from './modules/playList/reducer'
+import tracksSlice from './modules/SongList/reducer';
 const rootReducer = {
   musicPlayer: musicPlayerReducer,
   login:loginSlice,
-  playlist:playlistSlice
+  playlist:playlistSlice,
+  tracks: tracksSlice
 };
 
 const store = configureStore({
