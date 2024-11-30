@@ -18,7 +18,6 @@ const apiClient = axios.create({
 // 请求拦截器：添加公共参数和错误处理
 apiClient.interceptors.request.use(
   config => {
-    // 为每个请求添加时间戳，防止缓存
     config.params = {
       ...config.params
     };

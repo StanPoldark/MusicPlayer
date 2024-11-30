@@ -55,22 +55,35 @@ const MusicPlayer: React.FC = () => {
 
   // Consolidated play click handler
   const handlePlayClick = useCallback(() => {
-    setHasUserInteracted(true);
-    dispatch(togglePlay());
-  }, [dispatch]);
+    if (!audioRef.current || !currentTrack) return;
+
+    const onCanPlayThrough = () => {
+      if (!audioRef.current || !currentTrack) return;
+      setHasUserInteracted(true);
+      dispatch(togglePlay());
+      audioRef.current.removeEventListener('canplaythrough', onCanPlayThrough);
+    };
+
+    const handleLoadedMetadata = () => {
+      if (!audioRef.current || !currentTrack) return;
+      setDuration(audioRef.current.duration || 0);
+    };
+
+    audioRef.current.addEventListener('canplaythrough', onCanPlayThrough);
+
+    if (audioRef.current.readyState >= 3) {
+      onCanPlayThrough();
+      handleLoadedMetadata();
+    }
+  }, [dispatch, currentTrack]);
 
   // Audio metadata and progress handling
   useEffect(() => {
     const audioElement = audioRef.current;
     if (!audioElement || !hasUserInteracted) return;
 
-    setAudio(audioElement);
 
-    const handleLoadedMetadata = () => {
-      setDuration(audioElement.duration || 0);
-    };
-
-    const handleTimeUpdate = () => {
+    const handleTimeUpdate = () => {      
       if (!isDragging) {
         setProgress(audioElement.currentTime || 0);
       }
@@ -80,16 +93,14 @@ const MusicPlayer: React.FC = () => {
       dispatch(nextTrack());
     };
 
-    audioElement.addEventListener("loadedmetadata", handleLoadedMetadata);
     audioElement.addEventListener("timeupdate", handleTimeUpdate);
     audioElement.addEventListener("ended", handleEnded);
 
     return () => {
-      audioElement.removeEventListener("loadedmetadata", handleLoadedMetadata);
       audioElement.removeEventListener("timeupdate", handleTimeUpdate);
       audioElement.removeEventListener("ended", handleEnded);
     };
-  }, [hasUserInteracted, isDragging, dispatch, setAudio]);
+  }, [hasUserInteracted, isDragging, dispatch]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -101,27 +112,33 @@ const MusicPlayer: React.FC = () => {
       }
     };
 
-    // 在文档上添加点击事件监听器
     document.addEventListener("mousedown", handleClickOutside);
 
-    // 清理函数
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
-  // Audio playback control
   useEffect(() => {
     const audioElement = audioRef.current;
-    if (!audioElement || !hasUserInteracted || !currentTrack) return;
+    if (!audioElement || !currentTrack) return;
 
-    const needUpdateSource = audioElement.src !== currentTrack.url;
-
-    if (needUpdateSource) {
+    if (audioElement.src !== "http://localhost:3000" + decodeURIComponent(currentTrack.url)) {
       try {
-        audioElement.src = currentTrack.url;
+        audioElement.src = decodeURIComponent(currentTrack.url);
         audioElement.crossOrigin = "anonymous";
         setProgress(0);
+        audioElement.load();
+
+        audioElement.oncanplaythrough = () => {
+          if (isPlaying) {
+            audioElement.play().catch((error) => {
+              console.error("Playback control error:", error);
+            });
+          } else {
+            audioElement.pause();
+          }
+        };
       } catch (error) {
         console.error("Failed to set audio source:", error);
         return;
@@ -129,14 +146,21 @@ const MusicPlayer: React.FC = () => {
     }
 
     audioElement.volume = volume;
-
-    const playAction = isPlaying ? audioElement.play() : audioElement.pause();
-
-    if (playAction instanceof Promise) {
-      playAction.catch((error) => {
-        console.error("Playback control error:", error);
-      });
+    setAudio(audioElement);
+    if (audioElement.readyState >= 3) {
+      const playAction = isPlaying ? audioElement.play() : audioElement.pause();
+      if (playAction instanceof Promise) {
+        playAction.catch((error) => {
+          console.error("Playback control error:", error);
+        });
+      }
     }
+
+    return () => {
+      if (audioElement) {
+        audioElement.oncanplaythrough = null;
+      }
+    };
   }, [currentTrack?.url, isPlaying, volume, hasUserInteracted]);
 
   // Progress change handler with performance optimization
@@ -147,15 +171,6 @@ const MusicPlayer: React.FC = () => {
       const newProgress = parseFloat(e.target.value);
       setIsDragging(true);
       setProgress(newProgress);
-
-      const timeoutId = setTimeout(() => {
-        if (audioRef.current) {
-          audioRef.current.currentTime = newProgress;
-          setIsDragging(false);
-        }
-      }, 100);
-
-      return () => clearTimeout(timeoutId);
     },
     []
   );
@@ -170,26 +185,36 @@ const MusicPlayer: React.FC = () => {
     [dispatch]
   );
 
-  // Early return if no track is selected
+  const handleDragStart = useCallback(() => {
+    setIsDragging(true);
+  }, []);
+  
+  const handleDragEnd = useCallback(
+    (newValue: number) => {
+      if (audioRef.current) {
+        audioRef.current.currentTime = newValue;
+      }
+      setIsDragging(false);
+    },
+    []
+  );
+
+  
   if (!currentTrack) return null;
 
   return (
     <div className="w-[80%] rounded-lg mx-auto">
       <div className="flex text-center">
-        <span className="text-white w-[30%] flex items-center justify-center">
-          {currentTrack.name}
-        </span>
         <AudioSpectrum />
       </div>
 
       <audio ref={audioRef} id="audio-element" />
 
       <div
-        className="flex justify-between items-center mt-6 w-full"
+        className="flex justify-between items-center mt-6 w-full relative"
         ref={volumeContainerRef}
       >
         <div className="relative">
-          {/* 音量按钮 */}
           <button
             onClick={() => setIsVolumeVisible(!isVolumeVisible)}
             className="text-white hover:text-blue-500 transition-colors relative"
@@ -197,13 +222,12 @@ const MusicPlayer: React.FC = () => {
             <VolumeIcon size={32} />
           </button>
 
-          {/* 滑块 */}
           {isVolumeVisible && (
             <div
-              className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 transition-opacity duration-200 ease-in-out"
+              className="absolute left-1/2 bottom-full mb-2 transform -translate-x-1/2 transition-opacity duration-200 ease-in-out"
               style={{ opacity: isVolumeVisible ? 1 : 0 }}
             >
-              <div className="bg-gray-800 p-2 rounded-md shadow-lg">
+              <div className="bg-gray-800 p-2 rounded-md shadow-lg flex flex-col items-center">
                 <input
                   type="range"
                   min="0"
@@ -211,13 +235,13 @@ const MusicPlayer: React.FC = () => {
                   step="0.01"
                   value={volume}
                   onChange={handleVolumeChange}
-                  className="h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer transform origin-bottom-left w-32"
+                  className="h-32 w-2 bg-gray-200 rounded-lg appearance-none cursor-pointer transform rotate-180"
                   style={{
-                    background: `linear-gradient(to right, 
-                #3B82F6 0%, 
-                #3B82F6 ${volume * 100}%, 
-                #E5E7EB ${volume * 100}%, 
-                #E5E7EB 100%)`,
+                    background: `linear-gradient(to top, 
+                    #3B82F6 0%, 
+                    #3B82F6 ${volume * 100}%, 
+                    #E5E7EB ${volume * 100}%, 
+                    #E5E7EB 100%)`,
                   }}
                 />
               </div>
@@ -225,10 +249,7 @@ const MusicPlayer: React.FC = () => {
           )}
         </div>
 
-        <button
-          onClick={() => dispatch(previousTrack())}
-          className="playButton"
-        >
+        <button onClick={() => dispatch(previousTrack())} className="playButton">
           <SkipBack size={32} />
         </button>
 
@@ -239,41 +260,22 @@ const MusicPlayer: React.FC = () => {
         <button onClick={() => dispatch(nextTrack())} className="playButton">
           <SkipForward size={32} />
         </button>
-
-        <button
-          onClick={() => setIsVolumeVisible(!isVolumeVisible)}
-          className="text-white hover:text-blue-500 transition-colors"
-        >
-          <VolumeIcon size={32} />
-        </button>
       </div>
 
-      <div className="mt-4">
+      <div className="mt-1 mb-1">
         <div className="flex items-center justify-between text-gray-400 text-sm pb-3">
           <span className="pr-2">{formatTime(progress)}</span>
           <input
             type="range"
             min="0"
-            max={duration.toString()}
+            max={duration}
             step="0.1"
             value={progress}
             onChange={handleProgressChange}
-            onMouseDown={() => setIsDragging(true)}
-            onMouseUp={(e: React.MouseEvent<HTMLInputElement>) => {
-              const newProgress = parseFloat(e.currentTarget.value);
-              if (audioRef.current) {
-                audioRef.current.currentTime = newProgress;
-              }
-              setIsDragging(false);
-            }}
-            onTouchStart={() => setIsDragging(true)}
-            onTouchEnd={(e: React.TouchEvent<HTMLInputElement>) => {
-              const newProgress = parseFloat(e.currentTarget.value);
-              if (audioRef.current) {
-                audioRef.current.currentTime = newProgress;
-              }
-              setIsDragging(false);
-            }}
+            onMouseDown={handleDragStart}
+            onMouseUp={(e) => handleDragEnd(parseFloat(e.currentTarget.value))}
+            onTouchStart={handleDragStart}
+            onTouchEnd={(e) => handleDragEnd(parseFloat(e.currentTarget.value))}
             className="w-full"
           />
           <span className="pl-2">{formatTime(duration)}</span>
