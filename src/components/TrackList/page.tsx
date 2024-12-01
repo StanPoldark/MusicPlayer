@@ -139,6 +139,7 @@ const TrackList: React.FC = () => {
               ar: song.ar.map((ar: any) => ar.name).join(", "),
               picUrl: song.al.picUrl,
               url: "", 
+              time:0
             };
           })
         );
@@ -193,7 +194,8 @@ const TrackList: React.FC = () => {
         const updatedTrack = {
           ...track,
           url: `/api/proxy/music?url=${encodeURIComponent(songData.data[0].url)}`,
-          lyric: songLyric.lrc.lyric        
+          lyric: songLyric.lrc.lyric,
+          time: songData.data[0].time
         };
         
         // 分发当前音轨

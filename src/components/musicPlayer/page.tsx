@@ -7,7 +7,6 @@ import React, {
   useMemo,
 } from "react";
 import { useAppSelector, useAppDispatch } from "@/hooks/hooks";
-import AudioSpectrum from "@/components/Spectrum/page";
 import {
   Play,
   Pause,
@@ -38,6 +37,7 @@ const MusicPlayer: React.FC = () => {
   const [duration, setDuration] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [isVolumeVisible, setIsVolumeVisible] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState(0);
   const volumeContainerRef = useRef<HTMLDivElement>(null);
 
   // Memoized time formatting function
@@ -53,6 +53,60 @@ const MusicPlayer: React.FC = () => {
     return volume < 0.5 ? Volume1 : Volume2;
   }, [volume]);
 
+  // Progressive download handler
+  const fetchAudioProgressively = useCallback(async (trackUrl: string) => {
+    if (!trackUrl) return null;
+
+    try {
+      const decodedUrl = decodeURIComponent(trackUrl);
+      const response = await fetch(`${decodedUrl}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch audio');
+      }
+
+      const reader = response.body?.getReader();
+      const contentType = response.headers.get('Content-Type') || 'audio/mp3';
+      const blob = await new Response(
+        new ReadableStream({
+          start(controller) {
+            function push() {
+              reader?.read().then(({ done, value }) => {
+                if (done) {
+                  controller.close();
+                  return;
+                }
+                controller.enqueue(value);
+                
+                // Update download progress
+                const totalLength = parseInt(
+                  response.headers.get('Content-Length') || '0', 
+                  10
+                );
+                const progress = value ? 
+                  (controller.desiredSize || 0) / totalLength * 100 : 0;
+                setDownloadProgress(progress);
+                
+                push();
+              }).catch(error => {
+                console.error('Streaming error', error);
+                controller.error(error);
+              });
+            }
+            push();
+          }
+        }),
+        { headers: { 'Content-Type': contentType } }
+      ).blob();
+
+      const audioUrl = URL.createObjectURL(blob);
+      return audioUrl;
+    } catch (error) {
+      console.error('Progressive download error:', error);
+      return null;
+    }
+  }, []);
+
   // Consolidated play click handler
   const handlePlayClick = useCallback(() => {
     if (!audioRef.current || !currentTrack) return;
@@ -64,20 +118,59 @@ const MusicPlayer: React.FC = () => {
       audioRef.current.removeEventListener('canplaythrough', onCanPlayThrough);
     };
 
-    const handleLoadedMetadata = () => {
-      if (!audioRef.current || !currentTrack) return;
-      setDuration(audioRef.current.duration || 0);
-    };
-
     audioRef.current.addEventListener('canplaythrough', onCanPlayThrough);
 
     if (audioRef.current.readyState >= 3) {
       onCanPlayThrough();
-      handleLoadedMetadata();
     }
   }, [dispatch, currentTrack]);
 
-  // Audio metadata and progress handling
+  // Audio source and playback management
+  useEffect(() => {
+    const audioElement = audioRef.current;
+    if (!audioElement || !currentTrack) return;
+
+    const setupAudioSource = async () => {
+      try {
+        // Special handling for specific track
+        if (currentTrack.url === "寰宇记书.mp3") {
+          audioElement.src = "寰宇记书.mp3";
+        } else {
+          // Progressive download for other tracks
+          const audioUrl = await fetchAudioProgressively(currentTrack.url);
+          if (audioUrl) {
+            audioElement.src = audioUrl;
+          } else {
+            throw new Error('Failed to download audio');
+          }
+        }
+
+        audioElement.volume = volume;
+        setAudio(audioElement);
+
+        // Metadata and duration detection
+        const metadataHandler = () => {
+          setDuration(audioElement.duration || 0);
+          if (hasUserInteracted && isPlaying) {
+            audioElement.play().catch(console.error);
+          }
+        };
+
+        audioElement.addEventListener('loadedmetadata', metadataHandler);
+
+        // Cleanup
+        return () => {
+          audioElement.removeEventListener('loadedmetadata', metadataHandler);
+        };
+      } catch (error) {
+        console.error('Audio setup error:', error);
+      }
+    };
+
+    setupAudioSource();
+  }, [currentTrack?.url, isPlaying, volume, hasUserInteracted, fetchAudioProgressively]);
+
+  // Progress and playback tracking
   useEffect(() => {
     const audioElement = audioRef.current;
     if (!audioElement || !hasUserInteracted) return;
@@ -101,79 +194,16 @@ const MusicPlayer: React.FC = () => {
     };
   }, [hasUserInteracted, isDragging, dispatch]);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        volumeContainerRef.current &&
-        !volumeContainerRef.current.contains(event.target as Node)
-      ) {
-        setIsVolumeVisible(false);
-      }
-    };
+  // Volume and other event handlers remain similar to previous implementation
+  const handleVolumeChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const newVolume = parseFloat(e.target.value);
+      const safeVolume = Math.min(Math.max(newVolume, 0), 1);
+      dispatch(setVolume(safeVolume));
+    },
+    [dispatch]
+  );
 
-    document.addEventListener("mousedown", handleClickOutside);
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
-
-  useEffect(() => {
-    const audioElement = audioRef.current;
-    if (!audioElement || !currentTrack) return;
-
-    if(decodeURIComponent(currentTrack.url) == "寰宇记书.mp3" ){
-      
-      audioElement.src = "寰宇记书.mp3";
-      audioElement.volume = volume;
-      setAudio(audioElement);
-      if (hasUserInteracted){
-        isPlaying ? audioElement.play() : audioElement.pause();
-      }
-      return
-    }
-
-    if (audioElement.src !== "http://localhost:3000" + decodeURIComponent(currentTrack.url)) {
-
-      try {
-        audioElement.src = decodeURIComponent(currentTrack.url);
-        audioElement.crossOrigin = "anonymous";
-        setProgress(0);
-        audioElement.load();
-
-        audioElement.oncanplaythrough = () => {
-          if (isPlaying) {
-            audioElement.play().catch((error) => {
-              console.error("Playback control error:", error);
-            });
-          } else {
-            audioElement.pause();
-          }
-        };
-      } catch (error) {
-        console.error("Failed to set audio source:", error);
-        return;
-      }
-    }
-    audioElement.volume = volume;
-    setAudio(audioElement);
-    if (audioElement.readyState >= 3) {
-      const playAction = isPlaying ? audioElement.play() : audioElement.pause();
-      if (playAction instanceof Promise) {
-        playAction.catch((error) => {
-          console.error("Playback control error:", error);
-        });
-      }
-    }
-
-    return () => {
-      if (audioElement) {
-        audioElement.oncanplaythrough = null;
-      }
-    };
-  }, [currentTrack?.url, isPlaying, volume, hasUserInteracted]);
-
-  // Progress change handler with performance optimization
   const handleProgressChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       if (!audioRef.current) return;
@@ -185,20 +215,6 @@ const MusicPlayer: React.FC = () => {
     []
   );
 
-  // Volume change handler with safety checks
-  const handleVolumeChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const newVolume = parseFloat(e.target.value);
-      const safeVolume = Math.min(Math.max(newVolume, 0), 1);
-      dispatch(setVolume(safeVolume));
-    },
-    [dispatch]
-  );
-
-  const handleDragStart = useCallback(() => {
-    setIsDragging(true);
-  }, []);
-  
   const handleDragEnd = useCallback(
     (newValue: number) => {
       if (audioRef.current) {
@@ -213,17 +229,23 @@ const MusicPlayer: React.FC = () => {
 
   return (
     <div className="w-[80%] rounded-lg mx-auto">
-      <div className="flex text-center">
-        {/* Update the key based on currentTrack to reset AudioSpectrum component */}
-        <AudioSpectrum key={currentTrack.id} />
-      </div>
-
       <audio ref={audioRef} id="audio-element" />
+
+      {/* Download Progress Bar */}
+      {downloadProgress > 0 && downloadProgress < 100 && (
+        <div className="w-full bg-gray-200 rounded-full h-1.5 mb-2">
+          <div 
+            className="bg-blue-600 h-1.5 rounded-full" 
+            style={{ width: `${downloadProgress}%` }}
+          ></div>
+        </div>
+      )}
 
       <div
         className="flex justify-between items-center mt-6 w-full relative"
         ref={volumeContainerRef}
       >
+        {/* Volume control remains the same */}
         <div className="relative">
           <button
             onClick={() => setIsVolumeVisible(!isVolumeVisible)}
@@ -259,6 +281,7 @@ const MusicPlayer: React.FC = () => {
           )}
         </div>
 
+        {/* Playback control buttons */}
         <button onClick={() => dispatch(previousTrack())} className="playButton">
           <SkipBack size={32} />
         </button>
@@ -278,13 +301,11 @@ const MusicPlayer: React.FC = () => {
           <input
             type="range"
             min="0"
-            max={duration}
+            max={duration || 0}
             step="0.1"
             value={progress}
             onChange={handleProgressChange}
-            onMouseDown={handleDragStart}
             onMouseUp={(e) => handleDragEnd(parseFloat(e.currentTarget.value))}
-            onTouchStart={handleDragStart}
             onTouchEnd={(e) => handleDragEnd(parseFloat(e.currentTarget.value))}
             className="w-full"
           />
