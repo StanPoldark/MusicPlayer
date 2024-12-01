@@ -14,6 +14,11 @@ const initialTracks: Track[] = [
 
 ];
 
+interface AddTrackPayload {
+  track: Track;
+  from: "play" | "add"; // 来源
+}
+
 // 定义初始状态
 interface MusicPlayerState {
   currentTrack: Track | null;
@@ -70,6 +75,42 @@ const musicPlayerSlice = createSlice({
     },
     setAnalyzing: (state, action: PayloadAction<boolean>) => {
       state.isAnalyzing = action.payload;
+    },
+    addTrackToPlaylist: (state, action: PayloadAction<AddTrackPayload>) => {
+      const { track, from } = action.payload;
+    
+      // Prevent duplicates
+      const isTrackExists = state.playlist.some((item) => item.id === track.id);
+    
+      if (!isTrackExists) {
+        if (from === "play") {
+          state.playlist.unshift(track); // 添加到头部
+        } else if (from === "add") {
+          state.playlist.push(track); // 添加到尾部
+        }
+      }
+    },
+    removeTrackFromPlaylist: (state, action: PayloadAction<number>) => {
+      state.playlist = state.playlist.filter(track => track.id !== action.payload);
+      
+      // If the removed track was the current track, select the first track in the playlist
+      if (state.currentTrack?.id === action.payload) {
+        state.currentTrack = state.playlist.length > 0 ? state.playlist[0] : null;
+        state.isPlaying = false;
+      }
+    },
+    reorderPlaylist: (state, action: PayloadAction<{ sourceIndex: number; destinationIndex: number }>) => {
+      const { sourceIndex, destinationIndex } = action.payload;
+      const [removed] = state.playlist.splice(sourceIndex, 1);
+      state.playlist.splice(destinationIndex, 0, removed);
+
+      // Update current track if necessary
+      if (state.currentTrack) {
+        const newCurrentTrackIndex = state.playlist.findIndex(track => track.id === state.currentTrack!.id);
+        if (newCurrentTrackIndex !== -1) {
+          state.currentTrack = state.playlist[newCurrentTrackIndex];
+        }
+      }
     }
   }
 });
@@ -82,7 +123,10 @@ export const {
   previousTrack, 
   setVolume,
   updateSpectrumData,
-  setAnalyzing 
+  setAnalyzing,
+  addTrackToPlaylist,
+  removeTrackFromPlaylist,
+  reorderPlaylist
 } = musicPlayerSlice.actions;
 
 export default musicPlayerSlice.reducer;

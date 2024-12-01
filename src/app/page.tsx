@@ -2,7 +2,7 @@
 import React from "react";
 import MusicPlayer from "@/components/MusicPlayer/page";
 import Login from "@/components/Login/page";
-
+import PlayList from "@/components/PlayList/page"
 import { AudioProvider } from "@/contexts/AudioContext";
 import TrackList from "@/components/TrackList/page";
 import { Row, Col } from "antd";
@@ -31,6 +31,11 @@ export default function HomePage() {
           <Col span={8}>
           <div className="box" style={{}}>
             <LyricsDisplay />
+            </div>
+          </Col>
+          <Col span={8}>
+          <div className="box" style={{}}>
+            <PlayList />
             </div>
           </Col>
         </Row>

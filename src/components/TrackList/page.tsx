@@ -5,7 +5,8 @@ import { getUserMusicList, getDetailList, getSongUrl,checkSong,getlyric } from "
 import simplifySongListResult from "@/utils/SongList/simplifySongList";
 import { List, Avatar, Spin, message } from "antd";
 import Image from "next/image";
-import { setCurrentTrack } from "@/redux/modules/musicPlayer/reducer";
+import { LucidePlus } from "lucide-react";
+import { setCurrentTrack,addTrackToPlaylist  } from "@/redux/modules/musicPlayer/reducer";
 import {
   setSubscribedList,
   setCreatedList,
@@ -197,6 +198,7 @@ const TrackList: React.FC = () => {
         
         // 分发当前音轨
         dispatch(setCurrentTrack(updatedTrack));
+        dispatch(addTrackToPlaylist({from:"play",track:updatedTrack}));
       } catch (error) {
         console.error("Error fetching song URL:", error);
         message.error("Failed to load song");
@@ -243,6 +245,35 @@ const TrackList: React.FC = () => {
     return [];
   }, [displayMode, currentPlaylistId, trackLists]);
 
+  const handleAddToPlaylist = useCallback(async (track: Track) => {
+    try {
+      // Check song availability
+      const songAvailableData = await checkSong(track.id);
+      
+      if (!songAvailableData.success) {
+        alert("Sorry, this song is not available due to copyright restrictions.");
+        return;
+      }
+
+      const songData = await getSongUrl(track.id);
+      const songLyric = await getlyric(track.id);
+
+      const updatedTrack = {
+        ...track,
+        url: `/api/proxy/music?url=${encodeURIComponent(songData.data[0].url)}`,
+        lyric: songLyric.lrc.lyric
+      };
+
+      // Dispatch action to add track to playlist
+      dispatch(addTrackToPlaylist({from:"add",track:updatedTrack}));
+      alert(`Added ${track.name} to playlist`);
+    } catch (error) {
+      console.error("Error adding track to playlist:", error);
+      alert("Failed to add track to playlist");
+    }
+  }, [dispatch]);
+
+
   const listContent = useMemo(() => {
     if (isLoading) {
       return (
@@ -258,11 +289,14 @@ const TrackList: React.FC = () => {
 
     // 歌曲列表视图
     if (displayMode === "tracks") {
+      const currentTrackList = trackLists.find(
+        list => list.playlistId === currentPlaylistId
+      )?.tracks || [];
+
       if (!currentTrackList.length) {
-        return (
-          <p style={{ textAlign: "center", color: "gray" }}>No tracks found.</p>
-        );
+        return <p style={{ textAlign: "center", color: "gray" }}>No tracks found.</p>;
       }
+
 
       return (
         <div className="relative">
@@ -296,6 +330,15 @@ const TrackList: React.FC = () => {
                   title={<span style={{ color: "white" }}>{track.name}</span>}
                   description={<span style={{ color: "white" }}>{track.ar}</span>}
                 />
+                   <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleAddToPlaylist(track);
+                  }}
+                  className="text-white hover:text-green-500"
+                >
+                  <LucidePlus size={20} className="mr-2" />
+                </button>
               </List.Item>
             )}
             style={{

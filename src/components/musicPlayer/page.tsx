@@ -82,7 +82,6 @@ const MusicPlayer: React.FC = () => {
     const audioElement = audioRef.current;
     if (!audioElement || !hasUserInteracted) return;
 
-
     const handleTimeUpdate = () => {      
       if (!isDragging) {
         setProgress(audioElement.currentTime || 0);
@@ -123,7 +122,19 @@ const MusicPlayer: React.FC = () => {
     const audioElement = audioRef.current;
     if (!audioElement || !currentTrack) return;
 
+    if(decodeURIComponent(currentTrack.url) == "寰宇记书.mp3" ){
+      
+      audioElement.src = "寰宇记书.mp3";
+      audioElement.volume = volume;
+      setAudio(audioElement);
+      if (hasUserInteracted){
+        isPlaying ? audioElement.play() : audioElement.pause();
+      }
+      return
+    }
+
     if (audioElement.src !== "http://localhost:3000" + decodeURIComponent(currentTrack.url)) {
+
       try {
         audioElement.src = decodeURIComponent(currentTrack.url);
         audioElement.crossOrigin = "anonymous";
@@ -144,7 +155,6 @@ const MusicPlayer: React.FC = () => {
         return;
       }
     }
-
     audioElement.volume = volume;
     setAudio(audioElement);
     if (audioElement.readyState >= 3) {
@@ -199,13 +209,13 @@ const MusicPlayer: React.FC = () => {
     []
   );
 
-  
   if (!currentTrack) return null;
 
   return (
     <div className="w-[80%] rounded-lg mx-auto">
       <div className="flex text-center">
-        <AudioSpectrum />
+        {/* Update the key based on currentTrack to reset AudioSpectrum component */}
+        <AudioSpectrum key={currentTrack.id} />
       </div>
 
       <audio ref={audioRef} id="audio-element" />

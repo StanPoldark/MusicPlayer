@@ -2,6 +2,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useAudio } from "@/contexts/AudioContext";
 import { throttle } from "lodash";
+import { useAppSelector, useAppDispatch } from "@/hooks/hooks";
 
 const AudioSpectrum: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -11,37 +12,24 @@ const AudioSpectrum: React.FC = () => {
   const intervalId = useRef<number | null>(null);
   const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
   const { audio } = useAudio(); // Audio context
-
-  const initializeAudioContext = () => {
-    if (!audio || sourceNodeRef.current) return;
-    const newAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    setAudioContext(newAudioContext);
-
-    const newAnalyser = newAudioContext.createAnalyser();
-    newAnalyser.fftSize = 256;
-    newAnalyser.smoothingTimeConstant = 0.8;
-    setAnalyser(newAnalyser);
-
-    const newSourceNode = newAudioContext.createMediaElementSource(audio);
-    newSourceNode.connect(newAnalyser);
-    newAnalyser.connect(newAudioContext.destination);
-    sourceNodeRef.current = newSourceNode;
-  };
+  const {isPlaying} = useAppSelector(
+    (state) => state.musicPlayer
+  );
 
   const drawStaticSpectrum = (canvas: HTMLCanvasElement, alt: number) => {
     const canvasCtx = canvas.getContext("2d");
     const w = canvas.width;
     const h = canvas.height;
-    const barWidth = (w / alt) * 0.9; // 计算每个频谱条的宽度
+    const barWidth = (w / alt) * 0.9;
     let x = 0;
   
     if (canvasCtx) {
-      canvasCtx.clearRect(0, 0, w, h); // 清除画布
+      canvasCtx.clearRect(0, 0, w, h);
   
       for (let i = 0; i < alt; i++) {
-        const barHeight =  30; 
+        const barHeight = 30; 
         canvasCtx.fillStyle = "#bce5ef";
-        canvasCtx.fillRect(x, h / 2 - barHeight / 8, barWidth, barHeight / 4); // 绘制频谱条
+        canvasCtx.fillRect(x, h / 2 - barHeight / 8, barWidth, barHeight / 4);
         x += barWidth + 3; 
       }
     } else {
@@ -58,17 +46,14 @@ const AudioSpectrum: React.FC = () => {
     if (canvasCtx) {
       canvasCtx.clearRect(0, 0, w, h);
       
-      // 找出数据的最大值，用于归一化
       const maxValue = Math.max(...arr);
       
       let barW = (w / alt) * 0.9;
       let x = 0;
   
       for (let i = 0; i < alt; i++) {
-        // 归一化并缩放频谱条高度
         const normalizedHeight = (arr[i] / maxValue) * (h / 2);
         
-        // 使用渐变颜色，低频和高频使用不同颜色
         const gradient = canvasCtx.createLinearGradient(0, 0, 0, h);
         gradient.addColorStop(0, '#bce5ef');
         gradient.addColorStop(1, '#3498db');
@@ -82,7 +67,64 @@ const AudioSpectrum: React.FC = () => {
       throw Error("Canvas context is null");
     }
   }, 16);
-  
+
+  const cleanupAudioContext = () => {
+    // Disconnect and cleanup existing audio context resources
+    if (sourceNodeRef.current) {
+      try {
+        sourceNodeRef.current.disconnect();
+      } catch (error) {
+        console.warn("Error disconnecting source node:", error);
+      }
+      sourceNodeRef.current = null;
+    }
+
+    if (analyser) {
+      try {
+        analyser.disconnect();
+      } catch (error) {
+        console.warn("Error disconnecting analyser:", error);
+      }
+      setAnalyser(null);
+    }
+
+    if (audioContext) {
+      try {
+        audioContext.close();
+      } catch (error) {
+        console.warn("Error closing audio context:", error);
+      }
+      setAudioContext(null);
+    }
+  };
+
+  const initializeAudioContext = () => {
+    // First, clean up any existing audio context resources
+    cleanupAudioContext();
+
+    if (!audio) return;
+
+    try {
+      let newAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      setAudioContext(newAudioContext);
+
+      const newAnalyser = newAudioContext.createAnalyser();
+      newAnalyser.fftSize = 256;
+      newAnalyser.smoothingTimeConstant = 0.8;
+      setAnalyser(newAnalyser);
+
+      // Ensure the audio element is not already connected
+      if (audio.src) {
+        const newSourceNode = newAudioContext.createMediaElementSource(audio);
+        newSourceNode.connect(newAnalyser);
+        newAnalyser.connect(newAudioContext.destination);
+        sourceNodeRef.current = newSourceNode;
+      }
+    } catch (error) {
+      console.error("Error initializing audio context:", error);
+      fakeVisualize(); // Fallback to static visualization
+    }
+  };
 
   const fakeVisualize = () => {
     if (!canvasRef.current) return;
@@ -91,7 +133,7 @@ const AudioSpectrum: React.FC = () => {
 
     if (intervalId.current) clearInterval(intervalId.current);
 
-    drawStaticSpectrum(canvas,128); 
+    drawStaticSpectrum(canvas, 128); 
   };
 
   const visualize = () => {
@@ -111,35 +153,28 @@ const AudioSpectrum: React.FC = () => {
   };
 
   useEffect(() => {
-    if (!audio) {
-      fakeVisualize(); // 没有音频时启动静态点阵
+    if (!audio || !isPlaying) {
+      fakeVisualize(); // No audio, show static visualization
       return;
     }
 
-    try {
-      initializeAudioContext();
-    } catch (error) {
-      console.error("Error initializing audio context:", error);
-    }
+    initializeAudioContext();
 
     return () => {
+      // Cleanup function to disconnect audio resources
       if (animationFrameId.current) {
         cancelAnimationFrame(animationFrameId.current);
       }
       if (intervalId.current) {
         clearInterval(intervalId.current);
       }
-      if (audioContext) {
-        sourceNodeRef.current?.disconnect();
-        analyser?.disconnect();
-        audioContext.close();
-      }
+      cleanupAudioContext();
     };
-  }, [audio]);
+  }, [audio,isPlaying]); // Re-run effect when audio changes
 
   useEffect(() => {
     if (analyser) {
-      visualize(); // 动态音谱
+      visualize(); // Dynamic spectrum
     }
 
     return () => {
