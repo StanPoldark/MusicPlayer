@@ -6,6 +6,7 @@ export interface Track {
   ar: string[]; // 艺术家名字数组
   picUrl: string; // 专辑封面图片 URL
   url: string; // 音乐文件的 URL
+  time:number;
   [key: string]: any; // 可扩展字段
 }
 

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+const audioCache: Map<string, Buffer[]> = new Map();  // In-memory cache for audio files
+
 export async function GET(req: NextRequest) {
   const url = req.nextUrl.searchParams.get('url');
 
@@ -8,17 +10,39 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    // Check if the audio is already cached
+    if (audioCache.has(url)) {
+      console.log('Serving from cache:', url);
+      const cachedAudio = audioCache.get(url);
+      
+      // Return cached audio as a stream
+      const stream = new ReadableStream<Uint8Array>({
+        start(controller) {
+          // Convert the cached audio buffer to a stream
+          cachedAudio?.forEach(chunk => controller.enqueue(chunk));
+          controller.close();
+        }
+      });
+
+      return new Response(stream, {
+        headers: {
+          'Content-Type': 'audio/mp3',
+          'Access-Control-Allow-Origin': '*',
+          'Cache-Control': 'no-cache'
+        }
+      });
+    }
+
     const parsedUrl = new URL(url);
     const targetUrl = parsedUrl.toString();
-
+    
     const response = await fetch(targetUrl);
     const contentType = response.headers.get('Content-Type');
     
-    // 确认是否为音频文件
+    // Check if the content is audio
     const isAudio =
       contentType &&
-      (contentType.startsWith('audio/') ||
-        contentType === 'application/octet-stream;charset=UTF-8');
+      (contentType.startsWith('audio/') || contentType === 'application/octet-stream;charset=UTF-8');
     
     if (!isAudio) {
       return NextResponse.json(
@@ -31,12 +55,15 @@ export async function GET(req: NextRequest) {
     const audioBuffer: Buffer[] = [];
     let downloadedBytes = 0;
 
+    // Read the audio file and store it in memory
     const stream = new ReadableStream<Uint8Array>({
       start(controller) {
         const reader = response.body?.getReader();
-        
+
         const processChunk = ({ done, value }: { done: boolean, value?: Uint8Array }) => {
           if (done) {
+            // Cache the audio after downloading
+            audioCache.set(url, audioBuffer);
             controller.close();
             return;
           }
@@ -44,21 +71,16 @@ export async function GET(req: NextRequest) {
           if (value) {
             audioBuffer.push(Buffer.from(value));
             downloadedBytes += value.length;
-            
-            // 进度和部分加载回调
+
+            // Calculate download progress
             const progress = (downloadedBytes / contentLength) * 100;
             console.log(`Download Progress: ${progress.toFixed(2)}%`);
 
-            // 每次都推送数据
+            // Push the chunk to the response stream
             controller.enqueue(value);
-            
-            // 可以在这里添加触发部分播放的逻辑
-            if (downloadedBytes > 1024 * 1024) { // 超过1MB可以尝试播放
-              console.log('Partial data ready for playback');
-            }
           }
 
-          // 继续读取
+          // Continue reading the next chunk
           reader?.read().then(processChunk).catch(err => {
             console.error('Stream reading error:', err);
             controller.error(err);

@@ -1,20 +1,20 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 
-// Define the context type for Audio
+// 定义 AudioContext 类型
 interface AudioContextType {
   audio: HTMLAudioElement | null;
   setAudio: (audio: HTMLAudioElement | null) => void;
 }
 
-// Create the context
+// 创建上下文
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
 
-// Type the props for the AudioProvider
+// 定义 AudioProviderProps 类型
 interface AudioProviderProps {
   children: ReactNode;
 }
 
-// Create the provider component
+// 创建提供者
 export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
   const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
 
@@ -25,7 +25,7 @@ export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
   );
 };
 
-// Create a custom hook to use the audio context
+// 自定义 Hook
 export const useAudio = (): AudioContextType => {
   const context = useContext(AudioContext);
   if (!context) {

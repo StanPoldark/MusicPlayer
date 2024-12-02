@@ -1,12 +1,21 @@
 "use client";
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useAppSelector, useAppDispatch } from "@/hooks/hooks";
-import { getUserMusicList, getDetailList, getSongUrl,checkSong,getlyric } from "@/app/api/music";
+import {
+  getUserMusicList,
+  getDetailList,
+  getSongUrl,
+  checkSong,
+  getlyric,
+} from "@/app/api/music";
 import simplifySongListResult from "@/utils/SongList/simplifySongList";
 import { List, Avatar, Spin, message } from "antd";
 import Image from "next/image";
 import { LucidePlus } from "lucide-react";
-import { setCurrentTrack,addTrackToPlaylist  } from "@/redux/modules/musicPlayer/reducer";
+import {
+  setCurrentTrack,
+  addTrackToPlaylist,
+} from "@/redux/modules/musicPlayer/reducer";
 import {
   setSubscribedList,
   setCreatedList,
@@ -40,7 +49,9 @@ const TrackList: React.FC = () => {
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isLoadingTracks, setIsLoadingTracks] = useState<boolean>(false);
-  const [loadingPlaylistId, setLoadingPlaylistId] = useState<number | null>(null);
+  const [loadingPlaylistId, setLoadingPlaylistId] = useState<number | null>(
+    null
+  );
   const [displayList, setDisplayList] = useState<SimplifiedPlaylist[]>([]);
   const [displayMode, setDisplayMode] = useState<DisplayMode>("playlist");
   const [currentPlaylistId, setCurrentPlaylistId] = useState<number | null>(
@@ -48,7 +59,7 @@ const TrackList: React.FC = () => {
   );
   const [showSubscribed, setShowSubscribed] = useState<boolean>(true);
   const [error, setError] = useState<FetchError | null>(null);
-
+  const [storedTracks, setStoredTracks] = useState<Track[]>([]);
   const fetchUserMusicList = useCallback(async (userId: string) => {
     try {
       setIsLoading(true);
@@ -138,8 +149,8 @@ const TrackList: React.FC = () => {
               id: song.id,
               ar: song.ar.map((ar: any) => ar.name).join(", "),
               picUrl: song.al.picUrl,
-              url: "", 
-              time:0
+              url: "",
+              time: 0,
             };
           })
         );
@@ -148,7 +159,7 @@ const TrackList: React.FC = () => {
         dispatch(
           addTrackList({
             playlistId: id,
-            tracks: songList, 
+            tracks: songList,
           })
         );
         setDisplayMode("tracks");
@@ -166,50 +177,103 @@ const TrackList: React.FC = () => {
 
   const handleItemClick = useCallback(
     async (id: number) => {
-      
-      fetchTrackData(id);
-    },
-    [fetchTrackData]
-  );
-
-  const handleSongClick = useCallback(
-    async (track: Track) => {
-      // 防止重复加载
-      if (isLoadingTracks) return;
+      if (loadingPlaylistId) return;
+  
+      // Check if the track list already exists for the current playlist
+      if (trackLists.find((list) => list.playlistId === id)) {
+        setDisplayMode("tracks");
+        setCurrentPlaylistId(id);
+        return;
+      }
   
       try {
-        // 设置加载状态为 true
+        setIsLoadingTracks(true);
+        setLoadingPlaylistId(id);
+  
+        const res: TrackResponse = await getDetailList(id);
+        const songList: Track[] = await Promise.all(
+          res.songs.map(async (song: any): Promise<Track> => {
+            return {
+              name: song.name,
+              id: song.id,
+              ar: song.ar.map((ar: any) => ar.name).join(", "),
+              picUrl: song.al.picUrl,
+              url: "",
+              time: 0,
+            };
+          })
+        );
+  
+        dispatch(
+          addTrackList({
+            playlistId: id,
+            tracks: songList,
+          })
+        );
+        setDisplayMode("tracks");
+        setCurrentPlaylistId(id);
+      } catch (error) {
+        console.error("Error fetching track data:", error);
+        message.error("Failed to load track details");
+      } finally {
+        setIsLoadingTracks(false);
+        setLoadingPlaylistId(null);
+      }
+    },
+    [dispatch, trackLists, loadingPlaylistId]
+  );
+
+  
+  const handleSongClick = useCallback(
+    async (track: Track) => {
+      // Prevent fetching if loading tracks
+      if (isLoadingTracks) return;
+  
+      // Check if the track is already in the storedTracks array
+      const existingTrack = storedTracks.find((t) => t.id === track.id);
+  
+      if (existingTrack) {
+        // Track already exists, dispatch it without re-fetching
+        dispatch(setCurrentTrack(existingTrack));
+        dispatch(addTrackToPlaylist({ from: "play", track: existingTrack }));
+        return;
+      }
+  
+      try {
+        // Set loading state
         setIsLoadingTracks(true);
   
-        // 检查歌曲可用性
+        // Check song availability
         const songAvailableData = await checkSong(track.id);
         const songLyric = await getlyric(track.id);
-        
-        if(!songAvailableData.success){
-          alert("很抱歉，该歌曲因版权限制无法播放。");
-          return false;
+  
+        if (!songAvailableData.success) {
+          alert("Sorry, this song is not available due to copyright restrictions.");
+          return;
         }
-        
+  
         const songData = await getSongUrl(track.id);
         const updatedTrack = {
           ...track,
           url: `/api/proxy/music?url=${encodeURIComponent(songData.data[0].url)}`,
           lyric: songLyric.lrc.lyric,
-          time: songData.data[0].time
+          time: songData.data[0].time,
         };
-        
-        // 分发当前音轨
+  
+        // Store the updated track in the state
+        setStoredTracks((prevTracks) => [...prevTracks, updatedTrack]);
+  
+        // Dispatch the updated track
         dispatch(setCurrentTrack(updatedTrack));
-        dispatch(addTrackToPlaylist({from:"play",track:updatedTrack}));
+        dispatch(addTrackToPlaylist({ from: "play", track: updatedTrack }));
       } catch (error) {
         console.error("Error fetching song URL:", error);
         message.error("Failed to load song");
       } finally {
-        // 无论成功或失败，都要确保关闭加载状态
         setIsLoadingTracks(false);
       }
     },
-    [dispatch, isLoadingTracks]  // 添加 isLoadingTracks 作为依赖
+    [dispatch, isLoadingTracks, storedTracks]  // Add storedTracks as a dependency
   );
 
   useEffect(() => {
@@ -247,34 +311,40 @@ const TrackList: React.FC = () => {
     return [];
   }, [displayMode, currentPlaylistId, trackLists]);
 
-  const handleAddToPlaylist = useCallback(async (track: Track) => {
-    try {
-      // Check song availability
-      const songAvailableData = await checkSong(track.id);
-      
-      if (!songAvailableData.success) {
-        alert("Sorry, this song is not available due to copyright restrictions.");
-        return;
+  const handleAddToPlaylist = useCallback(
+    async (track: Track) => {
+      try {
+        // Check song availability
+        const songAvailableData = await checkSong(track.id);
+
+        if (!songAvailableData.success) {
+          alert(
+            "Sorry, this song is not available due to copyright restrictions."
+          );
+          return;
+        }
+
+        const songData = await getSongUrl(track.id);
+        const songLyric = await getlyric(track.id);
+
+        const updatedTrack = {
+          ...track,
+          url: `/api/proxy/music?url=${encodeURIComponent(
+            songData.data[0].url
+          )}`,
+          lyric: songLyric.lrc.lyric,
+        };
+
+        // Dispatch action to add track to playlist
+        dispatch(addTrackToPlaylist({ from: "add", track: updatedTrack }));
+        alert(`Added ${track.name} to playlist`);
+      } catch (error) {
+        console.error("Error adding track to playlist:", error);
+        alert("Failed to add track to playlist");
       }
-
-      const songData = await getSongUrl(track.id);
-      const songLyric = await getlyric(track.id);
-
-      const updatedTrack = {
-        ...track,
-        url: `/api/proxy/music?url=${encodeURIComponent(songData.data[0].url)}`,
-        lyric: songLyric.lrc.lyric
-      };
-
-      // Dispatch action to add track to playlist
-      dispatch(addTrackToPlaylist({from:"add",track:updatedTrack}));
-      alert(`Added ${track.name} to playlist`);
-    } catch (error) {
-      console.error("Error adding track to playlist:", error);
-      alert("Failed to add track to playlist");
-    }
-  }, [dispatch]);
-
+    },
+    [dispatch]
+  );
 
   const listContent = useMemo(() => {
     if (isLoading) {
@@ -291,14 +361,15 @@ const TrackList: React.FC = () => {
 
     // 歌曲列表视图
     if (displayMode === "tracks") {
-      const currentTrackList = trackLists.find(
-        list => list.playlistId === currentPlaylistId
-      )?.tracks || [];
+      const currentTrackList =
+        trackLists.find((list) => list.playlistId === currentPlaylistId)
+          ?.tracks || [];
 
       if (!currentTrackList.length) {
-        return <p style={{ textAlign: "center", color: "gray" }}>No tracks found.</p>;
+        return (
+          <p style={{ textAlign: "center", color: "gray" }}>No tracks found.</p>
+        );
       }
-
 
       return (
         <div className="relative">
@@ -313,10 +384,10 @@ const TrackList: React.FC = () => {
             dataSource={currentTrackList}
             renderItem={(track) => (
               <List.Item
-                style={{ 
-                  paddingInlineStart: 20, 
+                style={{
+                  paddingInlineStart: 20,
                   opacity: isLoadingTracks ? 0.5 : 1,
-                  pointerEvents: isLoadingTracks ? 'none' : 'auto'
+                  pointerEvents: isLoadingTracks ? "none" : "auto",
                 }}
                 onClick={() => handleSongClick(track)}
               >
@@ -330,9 +401,11 @@ const TrackList: React.FC = () => {
                     />
                   }
                   title={<span style={{ color: "white" }}>{track.name}</span>}
-                  description={<span style={{ color: "white" }}>{track.ar}</span>}
+                  description={
+                    <span style={{ color: "white" }}>{track.ar}</span>
+                  }
                 />
-                   <button 
+                <button
                   onClick={(e) => {
                     e.stopPropagation();
                     handleAddToPlaylist(track);
@@ -376,11 +449,11 @@ const TrackList: React.FC = () => {
           renderItem={(track) => (
             <List.Item
               onClick={() => handleItemClick(track.id)}
-              style={{ 
-                cursor: "pointer", 
+              style={{
+                cursor: "pointer",
                 paddingInlineStart: 20,
                 opacity: loadingPlaylistId ? 0.5 : 1,
-                pointerEvents: loadingPlaylistId ? 'none' : 'auto'
+                pointerEvents: loadingPlaylistId ? "none" : "auto",
               }}
             >
               <List.Item.Meta
@@ -395,7 +468,7 @@ const TrackList: React.FC = () => {
                         borderRadius: "4px",
                       }}
                       sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                     />
+                    />
                   </div>
                 }
                 title={<span style={{ color: "white" }}>{track.name}</span>}
@@ -423,7 +496,7 @@ const TrackList: React.FC = () => {
     currentTrackList,
     handleItemClick,
     isLoadingTracks,
-    loadingPlaylistId
+    loadingPlaylistId,
   ]);
 
   return (

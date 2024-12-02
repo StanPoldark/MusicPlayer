@@ -24,7 +24,7 @@ import {
 } from "@/redux/modules/musicPlayer/reducer";
 import { useAudio } from "@/contexts/AudioContext";
 import "./index.scss";
-
+import AudioSpectrum from "@/components/Spectrum/page"
 const MusicPlayer: React.FC = () => {
   const dispatch = useAppDispatch();
   const { currentTrack, isPlaying, volume } = useAppSelector(
@@ -109,21 +109,19 @@ const MusicPlayer: React.FC = () => {
 
   // Consolidated play click handler
   const handlePlayClick = useCallback(() => {
-    if (!audioRef.current || !currentTrack) return;
-
-    const onCanPlayThrough = () => {
-      if (!audioRef.current || !currentTrack) return;
-      setHasUserInteracted(true);
-      dispatch(togglePlay());
-      audioRef.current.removeEventListener('canplaythrough', onCanPlayThrough);
-    };
-
-    audioRef.current.addEventListener('canplaythrough', onCanPlayThrough);
-
-    if (audioRef.current.readyState >= 3) {
-      onCanPlayThrough();
+    if (!audioRef.current) return;
+  
+    setHasUserInteracted(true);
+  
+    if (isPlaying) {
+      audioRef.current.pause();
+    } else {
+      audioRef.current.play().catch(console.error);
     }
-  }, [dispatch, currentTrack]);
+  
+    dispatch(togglePlay());
+  }, [dispatch, isPlaying]);
+  
 
   // Audio source and playback management
   useEffect(() => {
@@ -168,7 +166,7 @@ const MusicPlayer: React.FC = () => {
     };
 
     setupAudioSource();
-  }, [currentTrack?.url, isPlaying, volume, hasUserInteracted, fetchAudioProgressively]);
+  }, [currentTrack?.url, volume, hasUserInteracted, fetchAudioProgressively]);
 
   // Progress and playback tracking
   useEffect(() => {
@@ -229,6 +227,9 @@ const MusicPlayer: React.FC = () => {
 
   return (
     <div className="w-[80%] rounded-lg mx-auto">
+
+  <AudioSpectrum hasUserInteracted={hasUserInteracted} />
+    <div >
       <audio ref={audioRef} id="audio-element" />
 
       {/* Download Progress Bar */}
@@ -312,6 +313,7 @@ const MusicPlayer: React.FC = () => {
           <span className="pl-2">{formatTime(duration)}</span>
         </div>
       </div>
+    </div>
     </div>
   );
 };
