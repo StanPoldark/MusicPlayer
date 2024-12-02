@@ -5,7 +5,7 @@ import { Track } from '../types';
 // 初始播放列表
 const initialTracks: Track[] = [
   {
-    id: 1,
+    id: 0,
     name: "寰宇记书.mp3",
     ar: ["Moonlight Band"],
     url: "寰宇记书.mp3",
