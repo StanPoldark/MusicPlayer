@@ -12,7 +12,6 @@ export async function GET(req: NextRequest) {
   try {
     // Check if the audio is already cached
     if (audioCache.has(url)) {
-      console.log('Serving from cache:', url);
       const cachedAudio = audioCache.get(url);
       
       // Return cached audio as a stream
@@ -74,7 +73,6 @@ export async function GET(req: NextRequest) {
 
             // Calculate download progress
             const progress = (downloadedBytes / contentLength) * 100;
-            console.log(`Download Progress: ${progress.toFixed(2)}%`);
 
             // Push the chunk to the response stream
             controller.enqueue(value);

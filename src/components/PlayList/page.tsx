@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { LucideTrash, LucideGripVertical } from 'lucide-react';
+import { List, Button, ConfigProvider, Divider } from 'antd';
+import { LucideTrash } from 'lucide-react';
 import { useAppSelector, useAppDispatch } from "@/hooks/hooks";
 import { 
   removeTrackFromPlaylist, 
@@ -7,6 +8,7 @@ import {
   setCurrentTrack 
 } from '@/redux/modules/musicPlayer/reducer';
 import { Track } from '@/redux/modules/types';
+import "./index.scss";
 
 const PlaylistManager: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -50,56 +52,41 @@ const PlaylistManager: React.FC = () => {
   };
 
   return (
-    <div 
-      className="flex-1 playlist-manager p-4 bg-transparent rounded-lg"
-      style={{ maxHeight: '400px', overflowY: 'auto' }}
-    >
+    <div className="flex-1 playlist-manager p-4 bg-transparent rounded-lg " style={{ width: '100%', height: '100%'}}>
       <h2 className="text-white text-xl mb-4">Playlist</h2>
       
       {playlist.length === 0 ? (
         <p className="text-neutral-500 text-center">Your playlist is empty</p>
       ) : (
-        <div className="space-y-2">
-          {playlist.map((track) => (
-            <div 
+        <List
+          itemLayout="horizontal"
+          dataSource={playlist}
+          renderItem={(track) => (
+            <List.Item
               key={track.id}
               draggable
               onDragStart={(e) => handleDragStart(e, track)}
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop(e, track)}
-              className={`
-                flex items-center justify-between p-2 rounded 
-                ${currentTrack?.id === track.id ? 'bg-neutral-700' : 'hover:bg-neutral-800'}
-                transition-colors duration-200 cursor-move
-              `}
+              className={`transition-colors duration-200 cursor-move p-2`}
+              style={{
+                cursor: "pointer",
+                paddingInlineStart: 20,
+              }}
             >
-              {/* Track Info */}
-              <div 
-                className="flex items-center space-x-4 flex-grow"
-                onClick={() => handlePlayTrack(track)}
-              >
-                <img 
-                  src={track.picUrl || '/placeholder-image.png'} 
-                  alt={track.name} 
-                  className="w-12 h-12 rounded object-cover"
-                />
-                <div>
-                  <p className="text-white text-sm">{track.name}</p>
-                  <p className="text-neutral-400 text-xs">{track.ar}</p>
-                </div>
-              </div>
-
-              {/* Remove Button */}
-              <button 
-                onClick={() => handleRemoveTrack(track.id)}
-                className="text-neutral-400 hover:text-red-500 p-2"
+              <List.Item.Meta
+                title={<p className="text-white" style={{marginBottom:0,fontSize:"1.25rem"}}>{track.name}</p>}
+              />
+              <Button 
+                type="link" 
+                onClick={() => handleRemoveTrack(track.id)} 
+                icon={<LucideTrash size={16} />} 
+                className="text-neutral-400 hover:text-red-500"
                 aria-label="Remove from playlist"
-              >
-                <LucideTrash size={16} />
-              </button>
-            </div>
-          ))}
-        </div>
+              />
+            </List.Item>
+          )}
+        />
       )}
     </div>
   );

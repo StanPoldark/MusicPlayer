@@ -101,7 +101,6 @@ export type PlayerAction =
   export interface SimplifiedPlaylist {
     id: number;
     name: string;
-    coverImgUrl: string;
     trackCount: number;
     subscribed:boolean;
     description:string;

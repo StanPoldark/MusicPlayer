@@ -1,7 +1,7 @@
 // src/store/modules/musicPlayer/reducer.ts
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { Track } from '../types';
-
+export type RepeatMode = 'off' | 'track' | 'playlist';
 // 初始播放列表
 const initialTracks: Track[] = [
   {
@@ -27,6 +27,7 @@ interface MusicPlayerState {
   playlist: Track[];
   spectrumData: number[];
   isAnalyzing: boolean;
+  repeatMode: RepeatMode; // New repeat mode state
 }
 
 const initialState: MusicPlayerState = {
@@ -35,7 +36,8 @@ const initialState: MusicPlayerState = {
   volume: 0.5,
   playlist: initialTracks,
   spectrumData: new Array(64).fill(0),
-  isAnalyzing: false
+  isAnalyzing: false,
+  repeatMode: 'off'
 };
 
 // 创建 Slice
@@ -49,24 +51,50 @@ const musicPlayerSlice = createSlice({
     togglePlay: (state) => {
       state.isPlaying = !state.isPlaying;
     },
+    toggleRepeatMode: (state) => {
+      const repeatModes: RepeatMode[] = ['off', 'track', 'playlist'];
+      const currentIndex = repeatModes.indexOf(state.repeatMode);
+      const nextIndex = (currentIndex + 1) % repeatModes.length;
+      state.repeatMode = repeatModes[nextIndex];
+    },
+
+    // Update nextTrack to respect repeat modes
     nextTrack: (state) => {
       const currentIndex = state.playlist.findIndex(
         track => track.id === state.currentTrack?.id
       );
+
+      if (state.repeatMode === 'track' && state.currentTrack) {
+        // If in track repeat mode, just restart the current track
+        state.isPlaying = true;
+        return;
+      }
+
+      // Default playlist navigation
       const nextIndex = (currentIndex + 1) % state.playlist.length;
       state.currentTrack = state.playlist[nextIndex];
       state.isPlaying = true;
     },
+
+    // Similar modification for previous track if needed
     previousTrack: (state) => {
       const currentIndex = state.playlist.findIndex(
         track => track.id === state.currentTrack?.id
       );
+
+      if (state.repeatMode === 'track' && state.currentTrack) {
+        // If in track repeat mode, just restart the current track
+        state.isPlaying = true;
+        return;
+      }
+
       const prevIndex = currentIndex > 0 
         ? currentIndex - 1 
         : state.playlist.length - 1;
       state.currentTrack = state.playlist[prevIndex];
       state.isPlaying = true;
     },
+
     setVolume: (state, action: PayloadAction<number>) => {
       state.volume = action.payload;
     },
@@ -126,7 +154,8 @@ export const {
   setAnalyzing,
   addTrackToPlaylist,
   removeTrackFromPlaylist,
-  reorderPlaylist
+  reorderPlaylist,
+  toggleRepeatMode 
 } = musicPlayerSlice.actions;
 
 export default musicPlayerSlice.reducer;

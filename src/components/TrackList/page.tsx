@@ -9,8 +9,7 @@ import {
   getlyric,
 } from "@/app/api/music";
 import simplifySongListResult from "@/utils/SongList/simplifySongList";
-import { List, Avatar, Spin, message } from "antd";
-import Image from "next/image";
+import { List, Spin, message } from "antd";
 import { LucidePlus } from "lucide-react";
 import {
   setCurrentTrack,
@@ -26,11 +25,7 @@ import {
   Track,
   TrackResponse,
 } from "@/redux/modules/types";
-import {
-  SwitcherOutlined,
-  UnorderedListOutlined,
-  AudioOutlined,
-} from "@ant-design/icons";
+import { SwitcherOutlined, UnorderedListOutlined } from "@ant-design/icons";
 import "./index.scss";
 
 type DisplayMode = "playlist" | "tracks";
@@ -72,7 +67,6 @@ const TrackList: React.FC = () => {
           "description",
           "id",
           "name",
-          "coverImgUrl",
           "subscribed",
           "trackCount",
         ];
@@ -178,18 +172,18 @@ const TrackList: React.FC = () => {
   const handleItemClick = useCallback(
     async (id: number) => {
       if (loadingPlaylistId) return;
-  
+
       // Check if the track list already exists for the current playlist
       if (trackLists.find((list) => list.playlistId === id)) {
         setDisplayMode("tracks");
         setCurrentPlaylistId(id);
         return;
       }
-  
+
       try {
         setIsLoadingTracks(true);
         setLoadingPlaylistId(id);
-  
+
         const res: TrackResponse = await getDetailList(id);
         const songList: Track[] = await Promise.all(
           res.songs.map(async (song: any): Promise<Track> => {
@@ -203,7 +197,7 @@ const TrackList: React.FC = () => {
             };
           })
         );
-  
+
         dispatch(
           addTrackList({
             playlistId: id,
@@ -223,46 +217,49 @@ const TrackList: React.FC = () => {
     [dispatch, trackLists, loadingPlaylistId]
   );
 
-  
   const handleSongClick = useCallback(
     async (track: Track) => {
       // Prevent fetching if loading tracks
       if (isLoadingTracks) return;
-  
+
       // Check if the track is already in the storedTracks array
       const existingTrack = storedTracks.find((t) => t.id === track.id);
-  
+
       if (existingTrack) {
         // Track already exists, dispatch it without re-fetching
         dispatch(setCurrentTrack(existingTrack));
         dispatch(addTrackToPlaylist({ from: "play", track: existingTrack }));
         return;
       }
-  
+
       try {
         // Set loading state
         setIsLoadingTracks(true);
-  
+
         // Check song availability
         const songAvailableData = await checkSong(track.id);
         const songLyric = await getlyric(track.id);
-  
+
         if (!songAvailableData.success) {
-          alert("Sorry, this song is not available due to copyright restrictions.");
+          alert(
+            "Sorry, this song is not available due to copyright restrictions."
+          );
           return;
         }
-  
+
         const songData = await getSongUrl(track.id);
         const updatedTrack = {
           ...track,
-          url: `/api/proxy/music?url=${encodeURIComponent(songData.data[0].url)}`,
+          url: `/api/proxy/music?url=${encodeURIComponent(
+            songData.data[0].url
+          )}`,
           lyric: songLyric.lrc.lyric,
           time: songData.data[0].time,
         };
-  
+
         // Store the updated track in the state
         setStoredTracks((prevTracks) => [...prevTracks, updatedTrack]);
-  
+
         // Dispatch the updated track
         dispatch(setCurrentTrack(updatedTrack));
         dispatch(addTrackToPlaylist({ from: "play", track: updatedTrack }));
@@ -273,7 +270,7 @@ const TrackList: React.FC = () => {
         setIsLoadingTracks(false);
       }
     },
-    [dispatch, isLoadingTracks, storedTracks]  // Add storedTracks as a dependency
+    [dispatch, isLoadingTracks, storedTracks] // Add storedTracks as a dependency
   );
 
   useEffect(() => {
@@ -392,18 +389,7 @@ const TrackList: React.FC = () => {
                 onClick={() => handleSongClick(track)}
               >
                 <List.Item.Meta
-                  avatar={
-                    <Avatar
-                      src={track.picUrl}
-                      shape="square"
-                      size={64}
-                      style={{ borderRadius: 4 }}
-                    />
-                  }
                   title={<span style={{ color: "white" }}>{track.name}</span>}
-                  description={
-                    <span style={{ color: "white" }}>{track.ar}</span>
-                  }
                 />
                 <button
                   onClick={(e) => {
@@ -417,7 +403,7 @@ const TrackList: React.FC = () => {
               </List.Item>
             )}
             style={{
-              maxHeight: "400px",
+              maxHeight: "50rem",
               overflowY: "auto",
               color: "white",
             }}
@@ -448,6 +434,7 @@ const TrackList: React.FC = () => {
           dataSource={displayList}
           renderItem={(track) => (
             <List.Item
+              className="trackitem"
               onClick={() => handleItemClick(track.id)}
               style={{
                 cursor: "pointer",
@@ -457,26 +444,7 @@ const TrackList: React.FC = () => {
               }}
             >
               <List.Item.Meta
-                avatar={
-                  <div className="relative w-16 h-16">
-                    <Image
-                      src={track.coverImgUrl || "/placeholder-image.png"}
-                      alt={`Cover for ${track.name}`}
-                      fill
-                      style={{
-                        objectFit: "cover",
-                        borderRadius: "4px",
-                      }}
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    />
-                  </div>
-                }
                 title={<span style={{ color: "white" }}>{track.name}</span>}
-                description={
-                  <span
-                    style={{ color: "white" }}
-                  >{`Tracks: ${track.trackCount}`}</span>
-                }
               />
             </List.Item>
           )}
@@ -508,12 +476,12 @@ const TrackList: React.FC = () => {
         <span className="align-text-center text-2xl font-bold text-white">
           {displayMode === "playlist" ? "Your Playlists" : "Playlist Tracks"}
         </span>
-        <div>
+        <div style={{display: "flex"}}>
           {displayMode === "playlist" && (
             <button>
               <SwitcherOutlined
                 onClick={toggleList}
-                style={{ fontSize: 24, color: "white", marginRight: 10 }}
+                style={{ fontSize: 24, color: "white"}}
               />
             </button>
           )}
@@ -536,11 +504,7 @@ const TrackList: React.FC = () => {
                 : "Switch to tracks mode"
             }
           >
-            {displayMode === "playlist" ? (
-              <AudioOutlined />
-            ) : (
-              <UnorderedListOutlined />
-            )}
+            <UnorderedListOutlined />
           </button>
         </div>
       </div>

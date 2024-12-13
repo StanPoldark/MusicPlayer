@@ -56,7 +56,7 @@ body {
   align-items: center;
   flex-flow: column nowrap;
   width: 90%;
-  height: 90%;
+  height:100%;
   color: #fff;
   background-image: linear-gradient(90deg, rgba(99, 99, 99, 0.1), rgba(99, 99, 99, 0.1) 1px, transparent 0, transparent), linear-gradient(90deg, hsla(0, 0%, 100%, 0.1) -20%, transparent 15%), linear-gradient(0deg, hsla(0, 0%, 100%, 0.1), transparent 25%);
   background-color: rgba(0, 0, 0, 0.5);
@@ -66,6 +66,7 @@ body {
   box-shadow: 0 0 10px 5px rgba(255, 255, 255, 0.15);
   transition: background-color 0.5s, box-shadow 0.5s;
   overflow: hidden;
+  font-size: large;
 }
 
 

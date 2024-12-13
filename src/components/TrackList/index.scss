@@ -17,3 +17,13 @@
     background: rgba(0, 0, 0, 0.3); /* 滚动条轨道的背景色 */
     border-radius: 10px; /* 滚动条轨道的圆角 */
   }
+
+
+  .ant-list-item:hover{
+    background-color: rgb(169, 169, 169,0.5);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); 
+  }
+
+  .trackitem{
+    transition: background-color 1s ease, box-shadow 1s ease; 
+  }

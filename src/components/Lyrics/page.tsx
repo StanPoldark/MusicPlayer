@@ -102,9 +102,10 @@ const LyricsDisplay: React.FC = () => {
       </div>
       <div
         ref={lyricsContainerRef}
-        className="lyrics-container h-80 overflow-y-auto text-center p-4 text-white"
+        className="lyrics-container overflow-y-auto text-center p-4 text-white"
         style={{
           scrollBehavior: "smooth",
+          maxHeight:"40rem"
         }}
       >
         {parsedLyrics.map((lyric, index) => (
@@ -114,10 +115,11 @@ const LyricsDisplay: React.FC = () => {
             mb-2 transition-all duration-300 ease-in-out
             ${
               index === currentLyricIndex
-                ? "text-white-500 font-bold text-xl"
+                ? "text-white-500 font-bold"
                 : "text-gray-300 text-base"
             }
           `}
+          style={{fontSize: "1.5rem"}}
           >
             {lyric.text}
           </div>

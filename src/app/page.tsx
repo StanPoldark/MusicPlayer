@@ -11,29 +11,21 @@ import "./index.scss";
 export default function HomePage() {
   return (
     <AudioProvider>
-      <div style={{ margin: "20px", width: "80%", height: "100%" }}>
-        {/* 上面一行：2个 Col */}
-        <Row gutter={16} style={{}}>
-          <Col span={8}>
-            <div className="box" style={{}}>
-              <Login />
-              <MusicPlayer />
-            </div>
-          </Col>
-        </Row>
-
-        <Row gutter={24} style={{ height: "66%" }}>
-          <Col span={8}>
+      <div style={{ margin: "20px", width: "80%", height: "80%" }}>
+        <Row gutter={24} style={{ height: "100%" }}>
+          <Col span={6}>
             <div className="box" style={{}}>
               <TrackList />
             </div>
           </Col>
-          <Col span={8}>
+          <Col span={12}>
           <div className="box" style={{}}>
-            <LyricsDisplay />
+              <Login />
+              <LyricsDisplay />
+              <MusicPlayer />
             </div>
           </Col>
-          <Col span={8}>
+          <Col span={6}>
           <div className="box" style={{}}>
             <PlayList />
             </div>
