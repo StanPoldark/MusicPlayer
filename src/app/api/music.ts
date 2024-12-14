@@ -96,3 +96,13 @@ export const getlyric = async (id: number): Promise<any> => {
 };
 
 
+
+export const search = async (keywords: string): Promise<any> => {
+  return handleApiCall(() => 
+    apiClient.get('/search', {
+      params: { keywords }
+    })
+  );
+};
+
+

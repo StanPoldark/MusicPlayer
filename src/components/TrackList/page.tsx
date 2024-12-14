@@ -55,6 +55,8 @@ const TrackList: React.FC = () => {
   const [showSubscribed, setShowSubscribed] = useState<boolean>(true);
   const [error, setError] = useState<FetchError | null>(null);
   const [storedTracks, setStoredTracks] = useState<Track[]>([]);
+
+  
   const fetchUserMusicList = useCallback(async (userId: string) => {
     try {
       setIsLoading(true);
@@ -403,7 +405,7 @@ const TrackList: React.FC = () => {
               </List.Item>
             )}
             style={{
-              maxHeight: "50rem",
+              maxHeight: "30rem",
               overflowY: "auto",
               color: "white",
             }}
@@ -449,7 +451,7 @@ const TrackList: React.FC = () => {
             </List.Item>
           )}
           style={{
-            maxHeight: "400px",
+            maxHeight: "30remx",
             overflowY: "auto",
             color: "white",
           }}

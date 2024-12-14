@@ -107,3 +107,11 @@ export type PlayerAction =
     [key: string]: any; // 可扩展字段
   }
   
+  export interface SimplifiedSearchList {
+    id: number;
+    name: string;
+    artists: [string];
+    duration:number;
+    [key: string]: any; // 可扩展字段
+  }
+  
