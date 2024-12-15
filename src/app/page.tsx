@@ -1,16 +1,16 @@
 "use client";
 import React, { useState } from "react";
 import { Row, Col, Drawer } from "antd";
-import MusicPlayer from "@/components/musicPlayer/page";
-import Login from "@/components/login/page";
-import PlayList from "@/components/playList/page";
-import { AudioProvider } from "@/contexts/audioContext";
+import MusicPlayer from "@/components/MusicPlayer/page";
+import Login from "@/components/Login/page";
+import PlayList from "@/components/PlayList/page";
+import { AudioProvider } from "@/contexts/AudioContext";
 import TrackList from "@/components/trackList/page";
-import LyricsDisplay from "@/components/lyrics/page";
+import LyricsDisplay from "@/components/Lyrics/page";
 import "./index.scss";
-import MusicSearch from "@/components/search/page"
+import MusicSearch from "@/components/Search/page"
 import mediaQuery from "@/utils/mediaQuery"
-import BottomNavigation from "@/components/bottomNavigation/page"; 
+import BottomNavigation from "@/components/BottomNavigation/page"; 
 import { 
   UserOutlined, 
   SearchOutlined, 
