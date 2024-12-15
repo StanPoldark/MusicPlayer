@@ -26,7 +26,7 @@ const LyricsDisplay: React.FC = () => {
     const lyrics: LyricLine[] = [];
     const lyricLines = currentTrack.lyric.split("\n");
 
-    lyricLines.forEach((line) => {
+    lyricLines.forEach((line: any) => {
       const timeMatch = line.match(/\[(\d+):(\d+\.\d+)\](.*)/);
       if (timeMatch) {
         const minutes = parseInt(timeMatch[1]);
