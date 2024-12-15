@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
-import { useAudio } from "@/contexts/AudioContext";
+import { useAudio } from "@/contexts/audioContext";
 import { throttle } from "lodash";
 import { useAppSelector } from "@/hooks/hooks";
 
