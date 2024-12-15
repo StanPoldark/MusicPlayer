@@ -349,7 +349,7 @@ const TrackList: React.FC = () => {
               </List.Item>
             )}
             style={{
-              maxHeight: "18rem",
+              maxHeight: "16rem",
               overflowY: "auto",
               color: "white",
             }}
@@ -395,7 +395,7 @@ const TrackList: React.FC = () => {
             </List.Item>
           )}
           style={{
-            maxHeight: "18rem",
+            maxHeight: "16rem",
             overflowY: "auto",
             color: "white",
           }}

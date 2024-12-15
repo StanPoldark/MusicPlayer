@@ -70,7 +70,7 @@ const PlaylistManager: React.FC = () => {
               }}
             >
               <List.Item.Meta
-                title={<p className="text-white" style={{marginBottom:0,fontSize:"1.25rem"}}>{track.name}</p>}
+                title={<p className="text-white" style={{marginBottom:0,fontSize:"1rem"}}>{track.name}</p>}
               />
               <Button 
                 type="link" 
