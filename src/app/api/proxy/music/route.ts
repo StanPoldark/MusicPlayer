@@ -50,9 +50,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const contentLength = parseInt(response.headers.get('Content-Length') || '0', 10);
     const audioBuffer: Buffer[] = [];
-    let downloadedBytes = 0;
 
     // Read the audio file and store it in memory
     const stream = new ReadableStream<Uint8Array>({
@@ -69,10 +67,6 @@ export async function GET(req: NextRequest) {
 
           if (value) {
             audioBuffer.push(Buffer.from(value));
-            downloadedBytes += value.length;
-
-            // Calculate download progress
-            const progress = (downloadedBytes / contentLength) * 100;
 
             // Push the chunk to the response stream
             controller.enqueue(value);

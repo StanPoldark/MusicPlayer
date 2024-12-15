@@ -1,18 +1,17 @@
 import React, { useState } from 'react';
-import { List, Button, ConfigProvider, Divider } from 'antd';
+import { List, Button } from 'antd';
 import { LucideTrash } from 'lucide-react';
 import { useAppSelector, useAppDispatch } from "@/hooks/hooks";
 import { 
   removeTrackFromPlaylist, 
   reorderPlaylist, 
-  setCurrentTrack 
 } from '@/redux/modules/musicPlayer/reducer';
 import { Track } from '@/redux/modules/types';
 import "./index.scss";
 
 const PlaylistManager: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { playlist, currentTrack } = useAppSelector(state => state.musicPlayer);
+  const { playlist } = useAppSelector(state => state.musicPlayer);
   const [draggedItem, setDraggedItem] = useState<Track | null>(null);
 
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>, track: Track) => {
@@ -45,10 +44,6 @@ const PlaylistManager: React.FC = () => {
 
   const handleRemoveTrack = (trackId: number) => {
     dispatch(removeTrackFromPlaylist(trackId));
-  };
-
-  const handlePlayTrack = (track: Track) => {
-    dispatch(setCurrentTrack(track));
   };
 
   return (

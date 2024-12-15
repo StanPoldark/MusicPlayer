@@ -8,7 +8,7 @@ export default function changeLinkHead2Https(url: string) {
   const i = url.indexOf('http'),
     s = url.indexOf('https');
   if (i == 0 && s != 0) {
-    let res = url.split('');
+    const res = url.split('');
     res.splice(4, 0, 's');
     return res.join('');
   } else if (s == 0) return url;

@@ -63,11 +63,6 @@ const AudioSpectrum: React.FC<AudioSpectrumProps> = ({ hasUserInteracted })  => 
       cancelAnimationFrame(animationFrameId.current);
     }
   };
-  const fakeVisualize = () => {
-    if (!canvasRef.current) return;
-    drawStaticSpectrum(canvasRef.current, 128); 
-  };
-
   const drawStaticSpectrum = (canvas: HTMLCanvasElement, alt: number) => {
     const canvasCtx = canvas.getContext("2d");
     const w = canvas.width;

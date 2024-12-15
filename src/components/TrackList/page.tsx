@@ -19,7 +19,7 @@ import {
   setSubscribedList,
   setCreatedList,
 } from "@/redux/modules/playList/reducer";
-import { addTrackList, clearTrackList } from "@/redux/modules/SongList/reducer";
+import { addTrackList } from "@/redux/modules/SongList/reducer";
 import {
   SimplifiedPlaylist,
   Track,
@@ -114,62 +114,6 @@ const TrackList: React.FC = () => {
     [dispatch]
   );
 
-  const fetchTrackData = useCallback(
-    async (id: number) => {
-      // Prevent multiple simultaneous loading
-      if (loadingPlaylistId) return;
-
-      try {
-        // Check if track list already exists
-        const existingTrackList = trackLists.find(
-          (list) => list.playlistId === id
-        );
-
-        if (existingTrackList) {
-          // If exists, switch to track list view
-          setDisplayMode("tracks");
-          setCurrentPlaylistId(id);
-          return;
-        }
-
-        // Set loading state
-        setIsLoadingTracks(true);
-        setLoadingPlaylistId(id);
-
-        const res: TrackResponse = await getDetailList(id);
-        // Wait for all async operations to complete
-        const songList: Track[] = await Promise.all(
-          res.songs.map(async (song: any): Promise<Track> => {
-            return {
-              name: song.name,
-              id: song.id,
-              ar: song.ar.map((ar: any) => ar.name).join(", "),
-              picUrl: song.al.picUrl,
-              url: "",
-              time: 0,
-            };
-          })
-        );
-
-        // Save track list to Redux with playlist ID
-        dispatch(
-          addTrackList({
-            playlistId: id,
-            tracks: songList,
-          })
-        );
-        setDisplayMode("tracks");
-        setCurrentPlaylistId(id);
-      } catch (error) {
-        console.error("Error fetching track data:", error);
-        message.error("Failed to load track details");
-      } finally {
-        setIsLoadingTracks(false);
-        setLoadingPlaylistId(null);
-      }
-    },
-    [dispatch, trackLists, loadingPlaylistId]
-  );
 
   const handleItemClick = useCallback(
     async (id: number) => {

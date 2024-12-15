@@ -29,9 +29,6 @@ import { useAudio } from "@/contexts/AudioContext";
 import "./index.scss";
 import AudioSpectrum from "@/components/Spectrum/page";
 import { Slider } from "antd";
-import { migrateAntDesignComponents } from '@/utils/migrateAntDesign';
-
-const CompatibleSlider = migrateAntDesignComponents().wrapWithCompatibility(Slider);
 
 
 const MusicPlayer: React.FC = () => {
@@ -287,15 +284,18 @@ const MusicPlayer: React.FC = () => {
                 className="absolute left-1/2 bottom-full mb-2 transform -translate-x-1/2 transition-opacity duration-200 ease-in-out white_slider"
                 style={{ opacity: isVolumeVisible ? 1 : 0, height:"3rem",marginBottom:"1rem" }}
               >
-                  <CompatibleSlider
+                  <Slider
                     min={0}
                     max={1}
                     value={volume}
                     vertical
                     onChange={handleVolumeChange}
                     step={0.01}
-                    tooltipVisible={false}
-                  ></CompatibleSlider>
+                    tooltip={{
+                      open: false,  
+                      formatter: () => null,
+                    }}
+                  ></Slider>
             
               </div>
             )}
@@ -329,7 +329,7 @@ const MusicPlayer: React.FC = () => {
         <div className="mt-1 mb-1">
           <div className="flex items-center justify-between text-gray-400 text-sm pb-3 white_slider" >
             <span className="pr-2" style={{marginRight:"0.5rem"}}>{formatTime(progress) }</span>
-            <CompatibleSlider
+            <Slider
               min={0}
               max={duration || 0}
               step={0.1}

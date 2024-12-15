@@ -17,7 +17,7 @@ const BottomNavigation: React.FC<{
   return (
     <div className="music-navigation">
       <ul>
-        {navItems.map((item, index) => (
+        {navItems.map((item) => (
           <li 
             key={item.key} 
             onClick={() => handleItemClick(item.key)}

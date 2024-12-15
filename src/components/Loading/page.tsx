@@ -58,7 +58,7 @@ const Loading: React.FC<LoadingProps> = ({ initState }) => {
 
   return removeMask ? null : (
     <div className={maskClassName}>
-      <div className="title">Welcome To Stan's Music Website</div>
+      <div className="title">Welcome To Stan&aposs Music Website</div>
       <LoadingProgress value={progress} />
     </div>
   );
