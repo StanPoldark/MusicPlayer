@@ -1,6 +1,6 @@
 "use client";
-import React from "react";
-import { Row, Col, Collapse } from "antd";
+import React, { useState } from "react";
+import { Row, Col, Drawer, Button } from "antd";
 import MusicPlayer from "@/components/MusicPlayer/page";
 import Login from "@/components/Login/page";
 import PlayList from "@/components/PlayList/page";
@@ -9,61 +9,125 @@ import TrackList from "@/components/TrackList/page";
 import LyricsDisplay from "@/components/Lyrics/page";
 import "./index.scss";
 import MusicSearch from "@/components/Search/page"
+import mediaQuery from "@/utils/mediaQuery"
+import BottomNavigation from "@/components/BottomNavigation/page"; 
+import { 
+  UserOutlined, 
+  SearchOutlined, 
+  PlayCircleOutlined, 
+  UnorderedListOutlined 
+} from '@ant-design/icons';
 
 export default function HomePage() {
-  const collapseItems = [
+  const isMobile = mediaQuery("(max-width: 768px)");
+  const [activeDrawer, setActiveDrawer] = useState<string | null>(null);
+
+  // Bottom navigation items for mobile
+  const mobileNavItems = [
+    {
+      key: 'login',
+      icon: <UserOutlined />,
+      label: 'Login',
+      component: <Login />
+    },
+    {
+      key: 'search',
+      icon: <SearchOutlined />,
+      label: 'Search',
+      component: <MusicSearch />
+    },
     {
       key: 'tracklist',
+      icon: <UnorderedListOutlined />,
       label: 'Track List',
-      children: (
-        <div className="box" style={{ height: "100%",width: "100%"}}>
-          <TrackList />
-        </div>
-      ),
-      style: { height: "100%",Color: "white"}
+      component: <TrackList />
     },
     {
       key: 'playlist',
+      icon: <PlayCircleOutlined />,
       label: 'Play List',
-      children: (
-        <div className="box" style={{ height: "100%" ,width: "100%"}}>
-          <PlayList />
-        </div>
-      ),
-      style: { height: "100%",Color: "white" }
+      component: <PlayList />
     }
   ];
 
+  // Close the drawer
+  const onClose = () => {
+    setActiveDrawer(null);
+  };
+
+  // Open a specific drawer
+  const openDrawer = (key: string) => {
+    setActiveDrawer(key);
+  };
+
   return (
     <AudioProvider>
-      <div style={{ margin: "20px", width: "80%", height: "80%" }}>
-        <Row gutter={0} style={{ height: "100%" }}>
-          <Col span={6}>
-            <Row style={{ height: "20%", marginBottom: "1%" }}>
-              <div className="box" style={{ height: "100%" }}>
-                <Login />
-              </div>
+      <div style={{ margin: "20px", width: "80%", height: isMobile ? "90%" : "80%" }}>
+        {isMobile ? (
+          <>
+            <Row gutter={0} style={{ height: "100%",paddingBottom: isMobile? "5rem": "0"  }}>
+              <Col span={24}>
+                <div className="box" style={{ height: "100%", width: "100%"}}>
+                  <LyricsDisplay />
+                  <MusicPlayer />
+                </div>
+              </Col>
             </Row>
-            <Row style={{ height: "79%" }}>
-              <div className="box" style={{ height: "100%" }}>
-                <MusicSearch />
-              </div>
-            </Row>
-          </Col>
-          <Col span={12}>
-            <div className="box" style={{ height: "100%" }}>
-              <LyricsDisplay />
-              <MusicPlayer />
-            </div>
-          </Col>
-          <Col span={6} style={{ height: "100%" }}>
-            <Collapse 
-              accordion  // This ensures only one panel can be open at a time
-              items={collapseItems} 
-              defaultActiveKey={[]} 
+
+            {/* Replace the previous bottom nav with the new component */}
+            <BottomNavigation 
+              navItems={mobileNavItems} 
+              onItemClick={openDrawer} 
             />
-          </Col>
-        </Row>
+
+            {/* Drawers remain the same */}
+            {mobileNavItems.map(item => (
+              <Drawer
+                key={item.key}
+                placement="bottom"
+                closable={true}
+                onClose={onClose}
+                open={activeDrawer === item.key}
+                height="70%"
+                title={item.label}
+                style={{ borderTopLeftRadius: '20px', borderTopRightRadius: '20px' }}
+              >
+                <div className="box" style={{ height: "100%", width: "100%" }}>
+                  {item.component}
+                </div>
+              </Drawer>
+            ))}
+          </>
+        ) :  (
+          <Row gutter={0} style={{ height: "100%" }}>
+            <Col span={6}>
+              <Row style={{ height: "20%", marginBottom: "1%" }}>
+                <div className="box" style={{ height: "100%" }}>
+                  <Login />
+                </div>
+              </Row>
+              <Row style={{ height: "79%" }}>
+                <div className="box" style={{ height: "100%" }}>
+                  <MusicSearch />
+                </div>
+              </Row>
+            </Col>
+            <Col span={12}>
+              <div className="box" style={{ height: "100%" }}>
+                <LyricsDisplay />
+                <MusicPlayer />
+              </div>
+            </Col>
+            <Col span={6} style={{ height: "100%" }}>
+              <div className="box" style={{ height: "50%" }}>
+                <TrackList />
+              </div>
+              <div className="box" style={{ height: "50%" }}>
+                <PlayList />
+              </div>
+            </Col>
+          </Row>
+        )}
       </div>
     </AudioProvider>
   );

@@ -168,7 +168,6 @@ const MusicPlayer: React.FC = () => {
 
         audioRef.current.volume = volume;
         setAudio(audioRef.current);
-
         // Metadata and duration detection
         const metadataHandler = () => {
           setDuration(audioRef.current?.duration || 0);

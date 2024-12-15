@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useAppSelector } from "@/hooks/hooks";
+import mediaQuery from "@/utils/mediaQuery"
 
 interface LyricLine {
   time: number;
@@ -7,6 +8,7 @@ interface LyricLine {
 }
 
 const LyricsDisplay: React.FC = () => {
+  const isMobile = mediaQuery("(max-width: 768px)");
   const { currentTrack, isPlaying } = useAppSelector(
     (state) => state.musicPlayer
   );
@@ -105,7 +107,8 @@ const LyricsDisplay: React.FC = () => {
         className="lyrics-container overflow-y-auto text-center p-4 text-white"
         style={{
           scrollBehavior: "smooth",
-          maxHeight:"40rem"
+          maxHeight: isMobile ? "26rem" :"40rem",
+
         }}
       >
         {parsedLyrics.map((lyric, index) => (
@@ -115,11 +118,11 @@ const LyricsDisplay: React.FC = () => {
             mb-2 transition-all duration-300 ease-in-out
             ${
               index === currentLyricIndex
-                ? "text-white-500 font-bold"
+                ? "text-white-500 font-bold text-2xl"
                 : "text-gray-300 text-base"
             }
           `}
-          style={{fontSize: "1.5rem"}}
+          style={{fontSize: isMobile? "1rem": "1.5rem"}}
           >
             {lyric.text}
           </div>

@@ -1,12 +1,7 @@
 "use client";
 import React, { useState, useCallback } from "react";
 import { useAppDispatch } from "@/hooks/hooks";
-import { 
-  search, 
-  getSongUrl, 
-  checkSong, 
-  getlyric 
-} from "@/app/api/music";
+import { search, getSongUrl, checkSong, getlyric } from "@/app/api/music";
 import { List, Input, Spin, message } from "antd";
 import { LucidePlus, Search as SearchIcon } from "lucide-react";
 import {
@@ -14,11 +9,12 @@ import {
   addTrackToPlaylist,
 } from "@/redux/modules/musicPlayer/reducer";
 import { Track } from "@/redux/modules/types";
+import "./index.scss";
 
 const MusicSearch: React.FC = () => {
   const dispatch = useAppDispatch();
   const [searchResults, setSearchResults] = useState<Track[]>([]);
-  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [searchTerm, setSearchTerm] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [storedTracks, setStoredTracks] = useState<Track[]>([]);
 
@@ -39,7 +35,7 @@ const MusicSearch: React.FC = () => {
           ar: song.artists.map((artist: any) => artist.name).join(", "),
           picUrl: song.album?.picUrl || "",
           url: "",
-          time: 0
+          time: 0,
         }));
 
         setSearchResults(searchTracks);
@@ -78,7 +74,9 @@ const MusicSearch: React.FC = () => {
         const songData = await getSongUrl(track.id);
         const updatedTrack = {
           ...track,
-          url: `/api/proxy/music?url=${encodeURIComponent(songData.data[0].url)}`,
+          url: `/api/proxy/music?url=${encodeURIComponent(
+            songData.data[0].url
+          )}`,
           lyric: songLyric.lrc.lyric,
           time: songData.data[0].time,
         };
@@ -110,7 +108,9 @@ const MusicSearch: React.FC = () => {
 
         const updatedTrack = {
           ...track,
-          url: `/api/proxy/music?url=${encodeURIComponent(songData.data[0].url)}`,
+          url: `/api/proxy/music?url=${encodeURIComponent(
+            songData.data[0].url
+          )}`,
           lyric: songLyric.lrc.lyric,
         };
 
@@ -127,20 +127,21 @@ const MusicSearch: React.FC = () => {
   return (
     <div className="w-full" style={{ height: "100%" }}>
       <div className="p-4 flex">
-        <Input 
-          placeholder="搜索歌曲" 
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          onPressEnter={handleSearch}
-          className="flex-grow mr-2 bg-transparent"
-        />
-        <button 
-          onClick={handleSearch} 
-          className=" p-2 rounded bg-transparent"
-          
-        >
-          <SearchIcon size={20} />
-        </button>
+        <div className="relative flex-grow m-4">
+          <Input
+            placeholder="搜索歌曲"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            onPressEnter={handleSearch}
+            className="w-full pr-10 searchBar" // 加宽以容纳按钮
+          />
+          <button
+            onClick={handleSearch}
+            className="absolute top-1/2 right-2 -translate-y-1/2 p-1 rounded bg-transparent"
+          >
+            <SearchIcon size={20} />
+          </button>
+        </div>
       </div>
 
       {isLoading ? (

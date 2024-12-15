@@ -7,15 +7,18 @@ import Loading from "@/components/Loading/page";
 import { Provider } from 'react-redux';
 import store from '@/redux/index';
 import 'antd/dist/reset.css';
+import mediaQuery from "@/utils/mediaQuery"
 
 // Functional component layout
 const Layout = ({ children }: any) => {
   const [initState, setInitState] = useState(false);
-
+  const isMobile = mediaQuery("(max-width: 768px)");
+  
   // Simulate asynchronous loading logic
   useEffect(() => {
-    setTimeout(() => setInitState(true), 2000); // Simulating data load
+    setTimeout(() => setInitState(true), 1000); // Simulating data load
   }, []);
+
 
   return (
     <Provider store={store}>
@@ -51,7 +54,7 @@ const Layout = ({ children }: any) => {
             </TransitionGroup>
             
             {/* Footer */}
-            <div className="footer">
+            <div className= {isMobile ? "" : "footer"}>
               {/* Add Footer content here */}
             </div>
           </div>
