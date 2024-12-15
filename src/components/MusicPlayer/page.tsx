@@ -25,9 +25,9 @@ import {
   setVolume,
   toggleRepeatMode,
 } from "@/redux/modules/musicPlayer/reducer";
-import { useAudio } from "@/contexts/AudioContext";
+import { useAudio } from "@/contexts/audioContext";
 import "./index.scss";
-import AudioSpectrum from "@/components/Spectrum/page";
+import AudioSpectrum from "@/components/spectrum/page";
 import { Slider } from "antd";
 
 
