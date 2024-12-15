@@ -178,7 +178,7 @@ const MusicSearch: React.FC = () => {
             </List.Item>
           )}
           style={{
-            maxHeight: "30rem",
+            maxHeight: "18rem",
             overflowY: "auto",
             color: "white",
           }}
