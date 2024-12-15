@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { TransitionGroup, CSSTransition } from 'react-transition-group';
 import './index.scss';
 import './globals.css';
-import Loading from "@/components/Loading/page";
+import Loading from "@/components/loading/page";
 import { Provider } from 'react-redux';
 import store from '@/redux/index';
 import 'antd/dist/reset.css';
