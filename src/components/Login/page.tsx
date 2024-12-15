@@ -190,7 +190,7 @@ const renderQRCodeSection = () => {
 
   return (
     <div 
-      className="fixed top-0 left-0 right-0 bottom-0 flex items-center justify-center bg-black bg-opacity-50"
+      className="fixed top-0 left-0 right-0 bottom-0 flex items-center justify-center bg-black bg-opacity-50 z-50"
       onClick={handleBackgroundClick} // Detect click on the background
     >
       <div className="mb-6 h-48 flex items-center justify-center bg-white p-4 rounded-lg shadow-lg" onClick={(e) => e.stopPropagation()}>
