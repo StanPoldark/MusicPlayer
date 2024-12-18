@@ -8,12 +8,13 @@ import {
   checkSong,
   getlyric,
 } from "@/app/api/music";
-import simplifySongListResult from "@/utils/SongList/simplifySongList";
+import simplifyResult from "@/utils/SongList/simplifyResult";
 import { List, Spin, message } from "antd";
 import { LucidePlus } from "lucide-react";
 import {
   setCurrentTrack,
   addTrackToPlaylist,
+  togglePlay
 } from "@/redux/modules/musicPlayer/reducer";
 import {
   setSubscribedList,
@@ -25,8 +26,9 @@ import {
   Track,
   TrackResponse,
 } from "@/redux/modules/types";
-import { SwitcherOutlined, UnorderedListOutlined } from "@ant-design/icons";
+import { SwitcherOutlined, UnorderedListOutlined,VerticalAlignBottomOutlined,RedoOutlined,ArrowLeftOutlined    } from "@ant-design/icons";
 import "./index.scss";
+import DownloadAudio from "@/utils/SongList/downloadAudio"
 
 type DisplayMode = "playlist" | "tracks";
 type FetchError = {
@@ -55,8 +57,10 @@ const TrackList: React.FC = () => {
   const [showSubscribed, setShowSubscribed] = useState<boolean>(true);
   const [error, setError] = useState<FetchError | null>(null);
   const [storedTracks, setStoredTracks] = useState<Track[]>([]);
+  const [ListName, setListName] = useState<boolean>(true);
+  const [isBackMode, setIsBackMode] = useState<boolean>(false);  // State to track if in back mode
 
-  
+
   const fetchUserMusicList = useCallback(async (userId: string) => {
     try {
       setIsLoading(true);
@@ -74,7 +78,7 @@ const TrackList: React.FC = () => {
         ];
 
         const simplifiedList = res.playlist.map((val: any) =>
-          simplifySongListResult(val, filterList)
+          simplifyResult(val, filterList)
         );
 
         return simplifiedList;
@@ -173,6 +177,7 @@ const TrackList: React.FC = () => {
 
       if (existingTrack) {
         // Track already exists, dispatch it without re-fetching
+        dispatch(togglePlay());
         dispatch(setCurrentTrack(existingTrack));
         dispatch(addTrackToPlaylist({ from: "play", track: existingTrack }));
         return;
@@ -235,14 +240,15 @@ const TrackList: React.FC = () => {
   const toggleList = useCallback(() => {
     const newShowSubscribed = !showSubscribed;
     setShowSubscribed(newShowSubscribed);
-
+    setListName(!ListName)
     const targetList = newShowSubscribed ? subscribedList : createdList;
     setDisplayList(targetList.length ? targetList : []);
   }, [showSubscribed, subscribedList, createdList]);
 
   const toggleDisplayMode = useCallback(() => {
     setDisplayMode((prev) => (prev === "playlist" ? "tracks" : "playlist"));
-  }, []);
+    setIsBackMode(!isBackMode);  // Toggle back mode when switching modes
+  }, [isBackMode]);
 
   const currentTrackList = useMemo(() => {
     if (displayMode === "tracks" && currentPlaylistId) {
@@ -288,6 +294,16 @@ const TrackList: React.FC = () => {
     },
     [dispatch]
   );
+
+  const refreshPlaylists = useCallback(() => {
+    if (userInfo?.id) {
+      fetchUserMusicList(userInfo.id).then((simplifiedList) => {
+        if (simplifiedList) {
+          splitPlayList(simplifiedList);
+        }
+      });
+    }
+  }, [userInfo, fetchUserMusicList, splitPlayList]);
 
   const listContent = useMemo(() => {
     if (isLoading) {
@@ -344,12 +360,23 @@ const TrackList: React.FC = () => {
                   }}
                   className="text-white hover:text-green-500"
                 >
-                  <LucidePlus size={20} className="mr-2" />
+                  <LucidePlus size={20} />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation(); // 阻止事件冒泡
+                    DownloadAudio(track);
+                  }}
+                  className="text-white hover:text-blue-500"
+                  style={{ marginLeft: 10 }}
+                  aria-label="Download track"
+                >
+                  <VerticalAlignBottomOutlined size={20} className="mr-2"  />
                 </button>
               </List.Item>
             )}
             style={{
-              maxHeight: "16rem",
+              maxHeight: "24rem",
               overflowY: "auto",
               color: "white",
             }}
@@ -395,7 +422,7 @@ const TrackList: React.FC = () => {
             </List.Item>
           )}
           style={{
-            maxHeight: "16rem",
+            maxHeight: "24rem",
             overflowY: "auto",
             color: "white",
           }}
@@ -420,7 +447,7 @@ const TrackList: React.FC = () => {
         style={{ textAlign: "center", marginBottom: 20 }}
       >
         <span className="align-text-center text-2xl font-bold text-white">
-          {displayMode === "playlist" ? "Your Playlists" : "Playlist Tracks"}
+          {displayMode === "playlist" ? (ListName ? "订阅的歌单":"创建的歌单") : "歌单详情"}
         </span>
         <div style={{display: "flex"}}>
           {displayMode === "playlist" && (
@@ -431,28 +458,22 @@ const TrackList: React.FC = () => {
               />
             </button>
           )}
+          {displayMode === "tracks" ? (
+            <button onClick={toggleDisplayMode}>
+              <ArrowLeftOutlined style={{ fontSize: 24, marginLeft: 20  }} />
+            </button>
+          ) : (
+            <button onClick={toggleDisplayMode}>
+              <UnorderedListOutlined style={{ fontSize: 24, marginLeft: 20  }} />
+            </button>
+          )}
           <button
-            onClick={
-              displayMode === "tracks"
-                ? () => setDisplayMode("playlist")
-                : toggleDisplayMode
-            }
-            style={{
-              color: "white",
-              marginLeft: 10,
-              background: "transparent",
-              border: "none",
-              cursor: "pointer",
-            }}
-            aria-label={
-              displayMode === "tracks"
-                ? "Switch to playlist mode"
-                : "Switch to tracks mode"
-            }
+            onClick={refreshPlaylists}
+            style={{ fontSize: 24, color: "white", marginLeft: 20 }}
           >
-            <UnorderedListOutlined />
-          </button>
-        </div>
+            <RedoOutlined  />
+          </button>  
+          </div>
       </div>
       {listContent}
     </div>

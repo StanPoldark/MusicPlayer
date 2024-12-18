@@ -1,9 +1,8 @@
 "use client"
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { TransitionGroup, CSSTransition } from 'react-transition-group';
 import './index.scss';
 import './globals.css';
-import Loading from "@/components/Loading/page";
 import { Provider } from 'react-redux';
 import store from '@/redux/index';
 import 'antd/dist/reset.css';
@@ -11,22 +10,14 @@ import mediaQuery from "@/utils/mediaQuery"
 
 // Functional component layout
 const Layout = ({ children }: any) => {
-  const [initState, setInitState] = useState(false);
   const isMobile = mediaQuery("(max-width: 768px)");
   
-  // Simulate asynchronous loading logic
-  useEffect(() => {
-    setTimeout(() => setInitState(true), 1000); // Simulating data load
-  }, []);
-
-
   return (
     <Provider store={store}>
 
     <html>
       <body>
-      {/* Loading spinner */}
-      <Loading initState={initState} />
+
       
       <TransitionGroup className='main-wrapper animate__animated animate__fadeIn'  id="bg">
         <CSSTransition

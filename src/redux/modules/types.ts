@@ -115,3 +115,9 @@ export type PlayerAction =
     [key: string]: any; // 可扩展字段
   }
   
+
+  export interface CaptchaResponse {
+    code: number;
+    data?: any;
+  }
+  

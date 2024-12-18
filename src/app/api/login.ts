@@ -5,7 +5,7 @@ import {
   QRCodeResponse, 
   LoginStateResponse, 
   CheckQRCodeResponse, 
-  LogoutResponse 
+  LogoutResponse,
 } from '@/redux/modules/types'; 
 
 axios.defaults.headers['Content-Type'] = 'application/x-www-form-urlencoded';
@@ -98,6 +98,27 @@ export const logout = async (): Promise<LogoutResponse> => {
     apiClient.post('/logout')
   );
 };
+
+export const loginByCaptcha = async (data: { phone: number, captcha: string }): Promise<any> => {
+  try {
+    const response = await apiClient.post('/login/cellphone', null, {
+      params: { phone: data.phone, captcha: data.captcha },
+    });
+    return response.data;  // Return the response data
+  } catch (error) {
+    console.error('Error during login:', error);
+    throw error;  // Handle login errors
+  }
+};
+
+// Function to get the captcha code
+export const getCaptchaCode = async (phone: number) => {
+  return handleApiCall(() => 
+   apiClient.get('/captcha/sent', {
+    params: { phone }
+  })
+);
+}
 
 // 导出 axios 实例，方便全局配置和拦截
 export { apiClient };

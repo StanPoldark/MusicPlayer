@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import { Row, Col, Drawer } from "antd";
+import { Row, Col, Drawer,Collapse  } from "antd";
 import MusicPlayer from "@/components/MusicPlayer/page";
 import Login from "@/components/Login/page";
 import PlayList from "@/components/PlayList/page";
@@ -49,6 +49,30 @@ export default function HomePage() {
       component: <PlayList />
     }
   ];
+
+  const collapseItems = [
+    {
+      key: 'tracklist',
+      label: 'Track List',
+      children: (
+        <div className="box" style={{ height: "100%",width: "100%"}}>
+          <TrackList />
+        </div>
+      ),
+      style: { height: "100%",Color: "white"}
+    },
+    {
+      key: 'playlist',
+      label: 'Play List',
+      children: (
+        <div className="box" style={{ height: "100%" ,width: "100%"}}>
+          <PlayList />
+        </div>
+      ),
+      style: { height: "100%",Color: "white" }
+    }
+  ];
+
 
   // Close the drawer
   const onClose = () => {
@@ -119,12 +143,11 @@ export default function HomePage() {
               </div>
             </Col>
             <Col span={6} style={{ height: "100%" }}>
-              <div className="box" style={{ height: "50%" }}>
-                <TrackList />
-              </div>
-              <div className="box" style={{ height: "50%" }}>
-                <PlayList />
-              </div>
+            <Collapse 
+              accordion  // This ensures only one panel can be open at a time
+              items={collapseItems} 
+              defaultActiveKey={[]} 
+            />
             </Col>
           </Row>
         )}

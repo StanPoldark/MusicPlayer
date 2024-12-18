@@ -11,9 +11,9 @@ interface LoadingProps {
 }
 
 const Loading: React.FC<LoadingProps> = ({ initState }) => {
-  const [progress, setProgress] = useState<number | null>(0); // 当前进度
-  const [maskClassName, setMaskClassName] = useState<string>("loading_mask"); // 蒙版类名
-  const [removeMask, setRemoveMask] = useState<boolean>(false); // 是否移除蒙版
+  const [progress, setProgress] = useState<number | null>(0); 
+  const [maskClassName, setMaskClassName] = useState<string>("loading_mask"); 
+  const [removeMask, setRemoveMask] = useState<boolean>(false);
 
   useEffect(() => {
     let progressTimer: NodeJS.Timeout | null = null;
@@ -22,12 +22,10 @@ const Loading: React.FC<LoadingProps> = ({ initState }) => {
     nprogress.configure({ showSpinner: false });
     nprogress.start();
 
-    // 更新进度条状态
     progressTimer = setInterval(() => {
       setProgress(nprogress.status || 0);
     }, 400);
 
-    // 清理定时器
     return () => {
       if (progressTimer) clearInterval(progressTimer);
     };
@@ -37,17 +35,15 @@ const Loading: React.FC<LoadingProps> = ({ initState }) => {
     if (progress === 1 || !initState) return;
 
     if (initState) {
-      // 模拟异步完成进度条
       const finishLoading = async () => {
         nprogress.done();
         setProgress(1);
 
-        // 更新蒙版状态
         setMaskClassName("loading_mask done");
-        await new Promise((resolve) => setTimeout(resolve, 1600)); // 等待动画完成
+        await new Promise((resolve) => setTimeout(resolve, 1600)); 
 
         setMaskClassName("loading_mask hidden");
-        await new Promise((resolve) => setTimeout(resolve, 1000)); // 等待隐藏动画
+        await new Promise((resolve) => setTimeout(resolve, 1000)); 
 
         setRemoveMask(true);
       };

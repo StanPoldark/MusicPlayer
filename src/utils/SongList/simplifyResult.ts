@@ -1,4 +1,4 @@
-export default function simplifySongListResult(
+export default function simplifyResult(
   val: { [propName: string]: any },
   filterList: string[],
 ) {
