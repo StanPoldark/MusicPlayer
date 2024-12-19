@@ -67,7 +67,7 @@ const MusicSearch: React.FC = () => {
       }
     
       // 将 URL 添加到歌曲对象中
-      const updatedSongList = songList.map((song, index) => {
+      const updatedSongList = songList.map((song) => {
         const songData = response.data.find((data: any) => data.id === song.id);
     
         // 如果 URL 存在并且有效（非 null 或 404），使用它，否则使用空字符串

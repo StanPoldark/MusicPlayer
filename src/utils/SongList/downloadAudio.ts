@@ -1,12 +1,12 @@
 import axios from 'axios'; // 引入 Axios
-import { getSongUrl } from '@/app/api/music';
+import { getSongUrls } from '@/app/api/music';
 
 function DownloadAudio(audioInfo: any) {
   const audioId = audioInfo.id;
 
   // 检查 audioId 的有效性
   if (typeof audioId === 'number' && audioId > 0) {
-    getSongUrl(audioId).then(({ data }) => {
+    getSongUrls([audioId]).then(({ data }) => {
       const url = data[0].url;
 
       axios({

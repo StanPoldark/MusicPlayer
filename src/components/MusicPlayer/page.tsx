@@ -42,7 +42,6 @@ const MusicPlayer: React.FC = () => {
   const [duration, setDuration] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [isVolumeVisible, setIsVolumeVisible] = useState(false);
-  const [downloadProgress, setDownloadProgress] = useState(0);
   const volumeContainerRef = useRef<HTMLDivElement>(null);
 
   // Memoized time formatting function
@@ -176,17 +175,6 @@ const MusicPlayer: React.FC = () => {
       <AudioSpectrum hasUserInteracted={hasUserInteracted} />
       <div>
         <audio ref={audioRef} id="audio-element" />
-
-        {/* Download Progress Bar */}
-        {downloadProgress > 0 && downloadProgress < 100 && (
-          <div className="w-full bg-gray-200 rounded-full h-1.5 mb-2">
-            <div
-              className="bg-blue-600 h-1.5 rounded-full"
-              style={{ width: `${downloadProgress}%` }}
-            ></div>
-          </div>
-        )}
-
         <div
           className="flex justify-between items-center mt-6 w-full relative"
           ref={volumeContainerRef}
