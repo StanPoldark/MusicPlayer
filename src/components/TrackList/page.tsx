@@ -201,7 +201,7 @@ const TrackList: React.FC = () => {
         const songData = await getSongUrl(track.id);
         const updatedTrack = {
           ...track,
-          url: `${encodeURIComponent(
+          url: `/api/proxy/music?url=${encodeURIComponent(
             songData.data[0].url
           )}`,
           lyric: songLyric.lrc.lyric,
@@ -278,7 +278,7 @@ const TrackList: React.FC = () => {
 
         const updatedTrack = {
           ...track,
-          url: `${encodeURIComponent(
+          url: `/api/proxy/music?url=${encodeURIComponent(
             songData.data[0].url
           )}`,
           lyric: songLyric.lrc.lyric,
