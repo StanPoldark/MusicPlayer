@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const audioCache: Map<string, Buffer[]> = new Map();  // In-memory cache for audio files
-
 export async function GET(req: NextRequest) {
   const url = req.nextUrl.searchParams.get('url');
 
@@ -10,95 +8,34 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // Check if the audio is already cached
-    if (audioCache.has(url)) {
-      const cachedAudio = audioCache.get(url);
-      
-      // Return cached audio as a stream
-      const stream = new ReadableStream<Uint8Array>({
-        start(controller) {
-          // Convert the cached audio buffer to a stream
-          cachedAudio?.forEach(chunk => controller.enqueue(chunk));
-          controller.close();
-        }
-      });
-
-      return new Response(stream, {
-        headers: {
-          'Content-Type': 'audio/mp3',
-          'Access-Control-Allow-Origin': '*',
-          'Cache-Control': 'no-cache'
-        }
-      });
-    }
-
-    const parsedUrl = new URL(url);
+    // Decode the URL (ensure it’s properly decoded)
+    const parsedUrl = decodeURIComponent(url);
     const targetUrl = parsedUrl.toString();
-    
+
+    // Fetch the audio file
     const response = await fetch(targetUrl);
-    const contentType = response.headers.get('Content-Type');
-    
+
     // Check if the content is audio
+    const contentType = response.headers.get('Content-Type');
     const isAudio =
       contentType &&
       (contentType.startsWith('audio/') || contentType === 'application/octet-stream;charset=UTF-8');
-    
+
     if (!isAudio) {
-      return NextResponse.json(
-        { error: 'The requested URL is not an audio file.' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'The requested URL is not an audio file.' }, { status: 400 });
     }
 
-    const audioBuffer: Buffer[] = [];
-
-    // Read the audio file and store it in memory
-    const stream = new ReadableStream<Uint8Array>({
-      start(controller) {
-        const reader = response.body?.getReader();
-
-        const processChunk = ({ done, value }: { done: boolean, value?: Uint8Array }) => {
-          if (done) {
-            // Cache the audio after downloading
-            audioCache.set(url, audioBuffer);
-            controller.close();
-            return;
-          }
-
-          if (value) {
-            audioBuffer.push(Buffer.from(value));
-
-            // Push the chunk to the response stream
-            controller.enqueue(value);
-          }
-
-          // Continue reading the next chunk
-          reader?.read().then(processChunk).catch(err => {
-            console.error('Stream reading error:', err);
-            controller.error(err);
-          });
-        };
-
-        reader?.read().then(processChunk).catch(err => {
-          console.error('Initial read error:', err);
-          controller.error(err);
-        });
-      },
-      cancel() {
-        console.log('Stream cancelled');
-      }
-    });
-
-    return new Response(stream, {
+    // Return the audio file as a response
+    return new Response(response.body, {
       headers: {
         'Content-Type': contentType || 'audio/mp3',
-        'Access-Control-Allow-Origin': '*',
-        'Cache-Control': 'no-cache'
+        'Access-Control-Allow-Origin': '*', // CORS header to allow frontend access
+        'Cache-Control': 'no-cache' // Optional, to prevent caching on the client side
       }
     });
 
   } catch (error) {
-    console.error('Error during progressive download:', error);
+    console.error('Error during audio fetching:', error);
     return NextResponse.json({ error: 'Download failed' }, { status: 500 });
   }
 }

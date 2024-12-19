@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useCallback } from "react";
 import { useAppDispatch } from "@/hooks/hooks";
-import { search, getSongUrl, checkSong, getlyric } from "@/app/api/music";
+import { search, getSongUrls, checkSong, getlyric } from "@/app/api/music";
 import { List, Input, Spin, message } from "antd";
 import { LucidePlus, Search as SearchIcon } from "lucide-react";
 import {
@@ -39,8 +39,8 @@ const MusicSearch: React.FC = () => {
           url: "",
           time: 0,
         }));
-
-        setSearchResults(searchTracks);
+        const updateTracks = await getSongsWithUrls(searchTracks);
+        setSearchResults(updateTracks);
       } else {
         message.error("未找到结果");
         setSearchResults([]);
@@ -53,6 +53,38 @@ const MusicSearch: React.FC = () => {
       setIsLoading(false);
     }
   };
+
+    const getSongsWithUrls = async (songList: any[]) => {
+      // 获取所有歌曲的 ID
+      const songIds = songList.map((song) => song.id);
+    
+      // 获取歌曲的 URL
+      const response = await getSongUrls(songIds);  // 调用 getSongUrls 获取歌曲数据
+    
+      // 检查返回的数据是否有效
+      if (response.code !== 200 || !response.data) {
+        throw new Error('Failed to fetch song URLs');
+      }
+    
+      // 将 URL 添加到歌曲对象中
+      const updatedSongList = songList.map((song, index) => {
+        const songData = response.data.find((data: any) => data.id === song.id);
+    
+        // 如果 URL 存在并且有效（非 null 或 404），使用它，否则使用空字符串
+        const songUrl = songData && songData.url 
+        ? `/api/proxy/music?url=${encodeURIComponent(songData.url)}`
+        : ''; 
+    
+        return {
+          ...song,
+          url: songUrl,
+          time: songData?.time || 0,
+        };
+      });
+    
+      return updatedSongList;
+    };
+
 
   const handleSongClick = useCallback(
     async (track: Track) => {
@@ -73,15 +105,9 @@ const MusicSearch: React.FC = () => {
           message.error("抱歉，由于版权限制，此歌曲不可播放");
           return;
         }
-
-        const songData = await getSongUrl(track.id);
         const updatedTrack = {
           ...track,
-          url: `/api/proxy/music?url=${encodeURIComponent(
-            songData.data[0].url
-          )}`,
           lyric: songLyric.lrc.lyric,
-          time: songData.data[0].time,
         };
 
         setStoredTracks((prevTracks) => [...prevTracks, updatedTrack]);
@@ -107,14 +133,9 @@ const MusicSearch: React.FC = () => {
           return;
         }
 
-        const songData = await getSongUrl(track.id);
         const songLyric = await getlyric(track.id);
-
         const updatedTrack = {
           ...track,
-          url: `/api/proxy/music?url=${encodeURIComponent(
-            songData.data[0].url
-          )}`,
           lyric: songLyric.lrc.lyric,
         };
 

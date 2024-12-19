@@ -68,10 +68,10 @@ export const getDetailList = async ( id: number | string,
 
 
 
-export const getSongUrl = async (id: number): Promise<any> => {
+export const getSongUrls = async (ids: number[]): Promise<any> => {
   return handleApiCall(() => 
     apiClient.get('/song/url', {
-      params: { id }
+      params: { id: ids.join(',') }  // Join the ids into a comma-separated string
     })
   );
 };

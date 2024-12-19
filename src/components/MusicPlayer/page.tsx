@@ -30,10 +30,9 @@ import "./index.scss";
 import AudioSpectrum from "@/components/Spectrum/page";
 import { Slider } from "antd";
 
-
 const MusicPlayer: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { currentTrack, isPlaying, volume, repeatMode  } = useAppSelector(
+  const { currentTrack, isPlaying, volume, repeatMode } = useAppSelector(
     (state) => state.musicPlayer
   );
   const { setAudio } = useAudio();
@@ -60,74 +59,15 @@ const MusicPlayer: React.FC = () => {
   }, [volume]);
 
   const RepeatIcon = useMemo(() => {
-    switch(repeatMode) {
-      case 'track':
+    switch (repeatMode) {
+      case "track":
         return Repeat1;
-      case 'playlist':
+      case "playlist":
         return Repeat;
       default:
         return Repeat; // Default icon for 'off' mode, but grayed out
     }
   }, [repeatMode]);
-
-  
-  // Progressive download handler
-  const fetchAudioProgressively = useCallback(async (trackUrl: string) => {
-    if (!trackUrl) return null;
-
-    try {
-      const decodedUrl = decodeURIComponent(trackUrl);
-      const response = await fetch(`${decodedUrl}`);
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch audio");
-      }
-
-      const reader = response.body?.getReader();
-      const contentType = response.headers.get("Content-Type") || "audio/mp3";
-      const blob = await new Response(
-        new ReadableStream({
-          start(controller) {
-            function push() {
-              reader
-                ?.read()
-                .then(({ done, value }) => {
-                  if (done) {
-                    controller.close();
-                    return;
-                  }
-                  controller.enqueue(value);
-
-                  // Update download progress
-                  const totalLength = parseInt(
-                    response.headers.get("Content-Length") || "0",
-                    10
-                  );
-                  const progress = value
-                    ? ((controller.desiredSize || 0) / totalLength) * 100
-                    : 0;
-                  setDownloadProgress(progress);
-
-                  push();
-                })
-                .catch((error) => {
-                  console.error("Streaming error", error);
-                  controller.error(error);
-                });
-            }
-            push();
-          },
-        }),
-        { headers: { "Content-Type": contentType } }
-      ).blob();
-
-      const audioUrl = URL.createObjectURL(blob);
-      return audioUrl;
-    } catch (error) {
-      console.error("Progressive download error:", error);
-      return null;
-    }
-  }, []);
 
   // Consolidated play click handler
   const handlePlayClick = useCallback(() => {
@@ -148,44 +88,28 @@ const MusicPlayer: React.FC = () => {
   useEffect(() => {
     if (!audioRef.current || !currentTrack) return;
 
-    const setupAudioSource = async () => {
-      try {
-        // Special handling for specific track
-        if (currentTrack.url === "寰宇记书.mp3") {
-          audioRef.current.src = "寰宇记书.mp3";
-        } else {
-          // Progressive download for other tracks
-          const audioUrl = await fetchAudioProgressively(currentTrack.url);
-          if (audioUrl) {
-            audioRef.current.src = audioUrl;
-          } else {
-            throw new Error("Failed to download audio");
-          }
-        }
+    // Set the audio source directly using currentTrack.url
+    audioRef.current.src = currentTrack.url;
 
-        audioRef.current.volume = volume;
-        setAudio(audioRef.current);
-        // Metadata and duration detection
-        const metadataHandler = () => {
-          setDuration(audioRef.current?.duration || 0);
-          if (hasUserInteracted && isPlaying) {
-            audioRef.current?.play().catch(console.error);
-          }
-        };
+    // Set volume
+    audioRef.current.volume = volume;
+    setAudio(audioRef.current);
 
-        audioRef.current.addEventListener("loadedmetadata", metadataHandler);
-
-        // Cleanup
-        return () => {
-          audioRef.current?.removeEventListener("loadedmetadata", metadataHandler);
-        };
-      } catch (error) {
-        console.error("Audio setup error:", error);
+    // Metadata and duration detection
+    const metadataHandler = () => {
+      setDuration(audioRef.current?.duration || 0);
+      if (hasUserInteracted && isPlaying) {
+        audioRef.current?.play().catch(console.error);
       }
     };
 
-    setupAudioSource();
-  }, [currentTrack?.url, volume, hasUserInteracted, fetchAudioProgressively]);
+    audioRef.current.addEventListener("loadedmetadata", metadataHandler);
+
+    // Cleanup
+    return () => {
+      audioRef.current?.removeEventListener("loadedmetadata", metadataHandler);
+    };
+  }, [currentTrack?.url, volume, hasUserInteracted, isPlaying, setAudio]);
 
   // Progress and playback tracking
   useEffect(() => {
@@ -199,24 +123,21 @@ const MusicPlayer: React.FC = () => {
 
     const handleEnded = () => {
       switch (repeatMode) {
-        case 'track':
-
+        case "track":
           if (audioRef.current) {
             audioRef.current.currentTime = 0;
             audioRef.current.play().catch(console.error);
           }
           break;
-        case 'playlist':
-   
+        case "playlist":
           dispatch(nextTrack());
           break;
         default:
-        
           dispatch(nextTrack());
           break;
       }
     };
-  
+
     audioRef.current?.addEventListener("timeupdate", handleTimeUpdate);
     audioRef.current?.addEventListener("ended", handleEnded);
 
@@ -224,7 +145,7 @@ const MusicPlayer: React.FC = () => {
       audioRef.current?.removeEventListener("timeupdate", handleTimeUpdate);
       audioRef.current?.removeEventListener("ended", handleEnded);
     };
-  }, [hasUserInteracted, isDragging, dispatch]);
+  }, [hasUserInteracted, isDragging, dispatch, repeatMode]);
 
   const handleVolumeChange = useCallback(
     (newVolume: number) => {
@@ -282,29 +203,25 @@ const MusicPlayer: React.FC = () => {
             {isVolumeVisible && (
               <div
                 className="absolute left-1/2 bottom-full mb-2 transform -translate-x-1/2 transition-opacity duration-200 ease-in-out white_slider"
-                style={{ opacity: isVolumeVisible ? 1 : 0, height:"3rem",marginBottom:"1rem" }}
+                style={{ opacity: isVolumeVisible ? 1 : 0, height: "3rem", marginBottom: "1rem" }}
               >
-                  <Slider
-                    min={0}
-                    max={1}
-                    value={volume}
-                    vertical
-                    onChange={handleVolumeChange}
-                    step={0.01}
-                    tooltip={{
-                      open: false,  
-                      formatter: () => null,
-                    }}
-                  ></Slider>
-            
+                <Slider
+                  min={0}
+                  max={1}
+                  value={volume}
+                  vertical
+                  onChange={handleVolumeChange}
+                  step={0.01}
+                  tooltip={{
+                    open: false,
+                    formatter: () => null,
+                  }}
+                />
               </div>
             )}
           </div>
 
-          <button
-            onClick={() => dispatch(previousTrack())}
-            className="playButton"
-          >
+          <button onClick={() => dispatch(previousTrack())} className="playButton">
             <SkipBack size={32} />
           </button>
 
@@ -317,9 +234,9 @@ const MusicPlayer: React.FC = () => {
           </button>
 
           {/* New Repeat Button */}
-          <button 
+          <button
             onClick={() => dispatch(toggleRepeatMode())}
-            className={`playButton ${repeatMode === 'off' ? 'text-gray-400' : 'text-blue-500'}`}
+            className={`playButton ${repeatMode === "off" ? "text-gray-400" : "text-blue-500"}`}
             title={`Repeat Mode: ${repeatMode}`}
           >
             <RepeatIcon size={32} />
@@ -327,8 +244,10 @@ const MusicPlayer: React.FC = () => {
         </div>
 
         <div className="mt-1 mb-1">
-          <div className="flex items-center justify-between text-gray-400 text-sm pb-3 white_slider" >
-            <span className="pr-2" style={{marginRight:"0.5rem"}}>{formatTime(progress) }</span>
+          <div className="flex items-center justify-between text-gray-400 text-sm pb-3 white_slider">
+            <span className="pr-2" style={{ marginRight: "0.5rem" }}>
+              {formatTime(progress)}
+            </span>
             <Slider
               min={0}
               max={duration || 0}
@@ -338,7 +257,7 @@ const MusicPlayer: React.FC = () => {
               onChangeComplete={(value) => handleDragEnd(value)}
               className="w-full"
               tooltip={{
-                open: false,  
+                open: false,
                 formatter: () => null,
               }}
             />
