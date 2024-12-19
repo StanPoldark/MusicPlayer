@@ -107,7 +107,7 @@ const LyricsDisplay: React.FC = () => {
         className="lyrics-container overflow-y-auto text-center p-4 text-white"
         style={{
           scrollBehavior: "smooth",
-          maxHeight: isMobile ? "26rem" :"26rem",
+          maxHeight: isMobile ? "26rem" :"40rem",
 
         }}
       >
