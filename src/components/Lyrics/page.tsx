@@ -115,7 +115,7 @@ const LyricsDisplay: React.FC = () => {
           <div
             key={index}
             className={`
-            mb-2 transition-all duration-300 ease-in-out
+            mb-4 transition-all duration-300 ease-in-out
             ${
               index === currentLyricIndex
                 ? "text-white-500 font-bold text-xl"

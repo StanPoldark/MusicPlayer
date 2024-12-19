@@ -32,7 +32,8 @@
         border-radius: 1px;
         inset-block-start: 0;
         transform: translateX(-100%) !important;
-        background-color: rgb(255, 255, 255,0.5);
+        background-color: rgb(255, 255, 255);
+        height: 0.5rem;
       }
       .ant-slider-handle::after {
         content: none !important;
@@ -67,12 +68,7 @@
         .ant-slider-track {
           width: 0.3rem;
         }
-  
-        .ant-slider-handle {
-          top: unset;
-          width: 0.5rem;
-          height: 0.7rem;
-        }
+
       }
   
     }

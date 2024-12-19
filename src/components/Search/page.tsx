@@ -188,8 +188,8 @@ const MusicSearch: React.FC = () => {
               onClick={() => handleSongClick(track)}
             >
               <List.Item.Meta
-                title={<span style={{ color: "white" }}>{track.name}</span>}
-                description={<span style={{ color: "black" }}>{track.ar}</span>}
+                title={<span className="font-bold" style={{ color: "white" }}>{track.name}</span>}
+                description={<span style={{ color: "#04deff" }}>{track.ar}</span>}
               />
               <button
                 onClick={(e) => {
