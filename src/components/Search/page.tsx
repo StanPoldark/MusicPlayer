@@ -77,7 +77,7 @@ const MusicSearch: React.FC = () => {
         const songData = await getSongUrl(track.id);
         const updatedTrack = {
           ...track,
-          url: `${encodeURIComponent(
+          url: `/api/proxy/music?url=${encodeURIComponent(
             songData.data[0].url
           )}`,
           lyric: songLyric.lrc.lyric,
@@ -112,7 +112,7 @@ const MusicSearch: React.FC = () => {
 
         const updatedTrack = {
           ...track,
-          url: `${encodeURIComponent(
+          url: `/api/proxy/music?url=${encodeURIComponent(
             songData.data[0].url
           )}`,
           lyric: songLyric.lrc.lyric,
@@ -170,7 +170,6 @@ const MusicSearch: React.FC = () => {
                 title={<span style={{ color: "white" }}>{track.name}</span>}
                 description={<span style={{ color: "black" }}>{track.ar}</span>}
               />
-
               <button
                 onClick={(e) => {
                   e.stopPropagation();
