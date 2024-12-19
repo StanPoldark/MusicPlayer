@@ -30,21 +30,56 @@ import "./index.scss";
 import AudioSpectrum from "@/components/Spectrum/page";
 import { Slider } from "antd";
 
-
 const MusicPlayer: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { currentTrack, isPlaying, volume, repeatMode  } = useAppSelector(
+  const { currentTrack, isPlaying, volume, repeatMode } = useAppSelector(
     (state) => state.musicPlayer
   );
   const { setAudio } = useAudio();
+  
   const audioRef = useRef<HTMLAudioElement>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
+  const gainNodeRef = useRef<GainNode | null>(null);
+
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [isVolumeVisible, setIsVolumeVisible] = useState(false);
-  const [downloadProgress, setDownloadProgress] = useState(0);
   const volumeContainerRef = useRef<HTMLDivElement>(null);
+
+  // Initialize Web Audio Context
+  useEffect(() => {
+    if (!audioRef.current) return;
+
+    const initializeAudioContext = () => {
+      // Create Audio Context
+      audioContextRef.current = new AudioContext();
+      
+      // Create Source Node
+      sourceNodeRef.current = audioContextRef.current.createMediaElementSource(audioRef.current!);
+      
+      // Create Gain Node
+      gainNodeRef.current = audioContextRef.current.createGain();
+      
+      // Connect nodes
+      sourceNodeRef.current
+        .connect(gainNodeRef.current)
+        .connect(audioContextRef.current.destination);
+        
+      // Set initial volume
+      gainNodeRef.current.gain.value = volume;
+    };
+
+    if (hasUserInteracted && !audioContextRef.current) {
+      initializeAudioContext();
+    }
+
+    return () => {
+      audioContextRef.current?.close();
+    };
+  }, [hasUserInteracted, volume]);
 
   // Memoized time formatting function
   const formatTime = useCallback((time: number) => {
@@ -66,70 +101,11 @@ const MusicPlayer: React.FC = () => {
       case 'playlist':
         return Repeat;
       default:
-        return Repeat; // Default icon for 'off' mode, but grayed out
+        return Repeat;
     }
   }, [repeatMode]);
 
-  
-  // Progressive download handler
-  const fetchAudioProgressively = useCallback(async (trackUrl: string) => {
-    if (!trackUrl) return null;
-
-    try {
-      const decodedUrl = decodeURIComponent(trackUrl);
-      const response = await fetch(`${decodedUrl}`);
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch audio");
-      }
-
-      const reader = response.body?.getReader();
-      const contentType = response.headers.get("Content-Type") || "audio/mp3";
-      const blob = await new Response(
-        new ReadableStream({
-          start(controller) {
-            function push() {
-              reader
-                ?.read()
-                .then(({ done, value }) => {
-                  if (done) {
-                    controller.close();
-                    return;
-                  }
-                  controller.enqueue(value);
-
-                  // Update download progress
-                  const totalLength = parseInt(
-                    response.headers.get("Content-Length") || "0",
-                    10
-                  );
-                  const progress = value
-                    ? ((controller.desiredSize || 0) / totalLength) * 100
-                    : 0;
-                  setDownloadProgress(progress);
-
-                  push();
-                })
-                .catch((error) => {
-                  console.error("Streaming error", error);
-                  controller.error(error);
-                });
-            }
-            push();
-          },
-        }),
-        { headers: { "Content-Type": contentType } }
-      ).blob();
-
-      const audioUrl = URL.createObjectURL(blob);
-      return audioUrl;
-    } catch (error) {
-      console.error("Progressive download error:", error);
-      return null;
-    }
-  }, []);
-
-  // Consolidated play click handler
+  // Handle play/pause
   const handlePlayClick = useCallback(() => {
     if (!audioRef.current) return;
 
@@ -138,34 +114,25 @@ const MusicPlayer: React.FC = () => {
     if (isPlaying) {
       audioRef.current.pause();
     } else {
-      audioRef.current.play().catch(console.error);
+      // Resume or start audio context if suspended
+      audioContextRef.current?.resume().then(() => {
+        audioRef.current?.play().catch(console.error);
+      });
     }
 
     dispatch(togglePlay());
   }, [dispatch, isPlaying]);
 
-  // Audio source and playback management
+  // Audio source management
   useEffect(() => {
     if (!audioRef.current || !currentTrack) return;
 
-    const setupAudioSource = async () => {
+    const setupAudio = async () => {
       try {
-        // Special handling for specific track
-        if (currentTrack.url === "寰宇记书.mp3") {
-          audioRef.current.src = "寰宇记书.mp3";
-        } else {
-          // Progressive download for other tracks
-          const audioUrl = await fetchAudioProgressively(currentTrack.url);
-          if (audioUrl) {
-            audioRef.current.src = audioUrl;
-          } else {
-            throw new Error("Failed to download audio");
-          }
-        }
-
-        audioRef.current.volume = volume;
+        audioRef.current!.src = currentTrack.url;
+        audioRef.current!.load();
         setAudio(audioRef.current);
-        // Metadata and duration detection
+
         const metadataHandler = () => {
           setDuration(audioRef.current?.duration || 0);
           if (hasUserInteracted && isPlaying) {
@@ -175,7 +142,6 @@ const MusicPlayer: React.FC = () => {
 
         audioRef.current.addEventListener("loadedmetadata", metadataHandler);
 
-        // Cleanup
         return () => {
           audioRef.current?.removeEventListener("loadedmetadata", metadataHandler);
         };
@@ -184,8 +150,8 @@ const MusicPlayer: React.FC = () => {
       }
     };
 
-    setupAudioSource();
-  }, [currentTrack?.url, volume, hasUserInteracted, fetchAudioProgressively]);
+    setupAudio();
+  }, [currentTrack?.url, hasUserInteracted, isPlaying, setAudio]);
 
   // Progress and playback tracking
   useEffect(() => {
@@ -200,35 +166,36 @@ const MusicPlayer: React.FC = () => {
     const handleEnded = () => {
       switch (repeatMode) {
         case 'track':
-
           if (audioRef.current) {
             audioRef.current.currentTime = 0;
             audioRef.current.play().catch(console.error);
           }
           break;
         case 'playlist':
-   
           dispatch(nextTrack());
           break;
         default:
-        
           dispatch(nextTrack());
           break;
       }
     };
   
-    audioRef.current?.addEventListener("timeupdate", handleTimeUpdate);
-    audioRef.current?.addEventListener("ended", handleEnded);
+    audioRef.current.addEventListener("timeupdate", handleTimeUpdate);
+    audioRef.current.addEventListener("ended", handleEnded);
 
     return () => {
       audioRef.current?.removeEventListener("timeupdate", handleTimeUpdate);
       audioRef.current?.removeEventListener("ended", handleEnded);
     };
-  }, [hasUserInteracted, isDragging, dispatch]);
+  }, [hasUserInteracted, isDragging, dispatch, repeatMode]);
 
+  // Volume control
   const handleVolumeChange = useCallback(
     (newVolume: number) => {
       const safeVolume = Math.min(Math.max(newVolume, 0), 1);
+      if (gainNodeRef.current) {
+        gainNodeRef.current.gain.value = safeVolume;
+      }
       dispatch(setVolume(safeVolume));
     },
     [dispatch]
@@ -256,21 +223,10 @@ const MusicPlayer: React.FC = () => {
       <div>
         <audio ref={audioRef} id="audio-element" />
 
-        {/* Download Progress Bar */}
-        {downloadProgress > 0 && downloadProgress < 100 && (
-          <div className="w-full bg-gray-200 rounded-full h-1.5 mb-2">
-            <div
-              className="bg-blue-600 h-1.5 rounded-full"
-              style={{ width: `${downloadProgress}%` }}
-            ></div>
-          </div>
-        )}
-
         <div
           className="flex justify-between items-center mt-6 w-full relative"
           ref={volumeContainerRef}
         >
-          {/* Volume control */}
           <div className="relative">
             <button
               onClick={() => setIsVolumeVisible(!isVolumeVisible)}
@@ -282,21 +238,20 @@ const MusicPlayer: React.FC = () => {
             {isVolumeVisible && (
               <div
                 className="absolute left-1/2 bottom-full mb-2 transform -translate-x-1/2 transition-opacity duration-200 ease-in-out white_slider"
-                style={{ opacity: isVolumeVisible ? 1 : 0, height:"3rem",marginBottom:"1rem" }}
+                style={{ opacity: isVolumeVisible ? 1 : 0, height:"3rem", marginBottom:"1rem" }}
               >
-                  <Slider
-                    min={0}
-                    max={1}
-                    value={volume}
-                    vertical
-                    onChange={handleVolumeChange}
-                    step={0.01}
-                    tooltip={{
-                      open: false,  
-                      formatter: () => null,
-                    }}
-                  ></Slider>
-            
+                <Slider
+                  min={0}
+                  max={1}
+                  value={volume}
+                  vertical
+                  onChange={handleVolumeChange}
+                  step={0.01}
+                  tooltip={{
+                    open: false,
+                    formatter: () => null,
+                  }}
+                />
               </div>
             )}
           </div>
@@ -316,7 +271,6 @@ const MusicPlayer: React.FC = () => {
             <SkipForward size={32} />
           </button>
 
-          {/* New Repeat Button */}
           <button 
             onClick={() => dispatch(toggleRepeatMode())}
             className={`playButton ${repeatMode === 'off' ? 'text-gray-400' : 'text-blue-500'}`}
@@ -327,8 +281,8 @@ const MusicPlayer: React.FC = () => {
         </div>
 
         <div className="mt-1 mb-1">
-          <div className="flex items-center justify-between text-gray-400 text-sm pb-3 white_slider" >
-            <span className="pr-2" style={{marginRight:"0.5rem"}}>{formatTime(progress) }</span>
+          <div className="flex items-center justify-between text-gray-400 text-sm pb-3 white_slider">
+            <span className="pr-2" style={{marginRight:"0.5rem"}}>{formatTime(progress)}</span>
             <Slider
               min={0}
               max={duration || 0}
@@ -338,7 +292,7 @@ const MusicPlayer: React.FC = () => {
               onChangeComplete={(value) => handleDragEnd(value)}
               className="w-full"
               tooltip={{
-                open: false,  
+                open: false,
                 formatter: () => null,
               }}
             />
