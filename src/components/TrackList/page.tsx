@@ -201,7 +201,9 @@ const TrackList: React.FC = () => {
         const songData = await getSongUrl(track.id);
         const updatedTrack = {
           ...track,
-          url: `${encodeURIComponent(songData.data[0].url.replace('http://', 'https://'))}` ,
+          url: `${encodeURIComponent(
+            songData.data[0].url
+          )}`,
           lyric: songLyric.lrc.lyric,
           time: songData.data[0].time,
         };
@@ -272,7 +274,8 @@ const TrackList: React.FC = () => {
         }
 
         const songData = await getSongUrl(track.id);
-        const songLyric = await getlyric(track.id);     
+        const songLyric = await getlyric(track.id);
+
         const updatedTrack = {
           ...track,
           url: `${encodeURIComponent(songData.data[0].url.replace('http://', 'https://'))}` ,
