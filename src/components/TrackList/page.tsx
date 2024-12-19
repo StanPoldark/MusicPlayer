@@ -446,7 +446,7 @@ const TrackList: React.FC = () => {
         className="flex flex-row justify-around mt-4"
         style={{ textAlign: "center", marginBottom: 20 }}
       >
-        <span className="align-text-center text-2xl font-bold text-white">
+        <span className="align-text-center text-xl font-bold text-white">
           {displayMode === "playlist" ? (ListName ? "订阅的歌单":"创建的歌单") : "歌单详情"}
         </span>
         <div style={{display: "flex"}}>

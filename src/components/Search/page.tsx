@@ -10,6 +10,8 @@ import {
 } from "@/redux/modules/musicPlayer/reducer";
 import { Track } from "@/redux/modules/types";
 import "./index.scss";
+import DownloadAudio from "@/utils/SongList/downloadAudio"
+import { VerticalAlignBottomOutlined } from "@ant-design/icons";
 
 const MusicSearch: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -67,6 +69,7 @@ const MusicSearch: React.FC = () => {
         const songLyric = await getlyric(track.id);
 
         if (!songAvailableData.success) {
+          alert("抱歉，由于版权限制，此歌曲不可播放")
           message.error("抱歉，由于版权限制，此歌曲不可播放");
           return;
         }
@@ -99,6 +102,7 @@ const MusicSearch: React.FC = () => {
         const songAvailableData = await checkSong(track.id);
 
         if (!songAvailableData.success) {
+          alert("抱歉，由于版权限制，此歌曲不可添加")
           message.error("抱歉，由于版权限制，此歌曲不可添加");
           return;
         }
@@ -164,7 +168,7 @@ const MusicSearch: React.FC = () => {
             >
               <List.Item.Meta
                 title={<span style={{ color: "white" }}>{track.name}</span>}
-                description={<span style={{ color: "gray" }}>{track.ar}</span>}
+                description={<span style={{ color: "black" }}>{track.ar}</span>}
               />
               <button
                 onClick={(e) => {
@@ -175,6 +179,17 @@ const MusicSearch: React.FC = () => {
               >
                 <LucidePlus size={20} className="mr-2" />
               </button>
+              <button
+                  onClick={(e) => {
+                    e.stopPropagation(); // 阻止事件冒泡
+                    DownloadAudio(track);
+                  }}
+                  className="text-white hover:text-blue-500"
+                  style={{ marginLeft: 10 }}
+                  aria-label="Download track"
+                >
+                  <VerticalAlignBottomOutlined size={20} className="mr-2"  />
+                </button>
             </List.Item>
           )}
           style={{

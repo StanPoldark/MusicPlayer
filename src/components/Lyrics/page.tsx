@@ -98,7 +98,7 @@ const LyricsDisplay: React.FC = () => {
         className="flex flex-row justify-around mt-4"
         style={{ textAlign: "center", marginBottom: 20 }}
       >
-        <span className="align-text-center text-2xl font-bold text-white">
+        <span className="align-text-center text-xl font-bold text-white">
           {currentTrack.name}
         </span>
       </div>
@@ -107,7 +107,7 @@ const LyricsDisplay: React.FC = () => {
         className="lyrics-container overflow-y-auto text-center p-4 text-white"
         style={{
           scrollBehavior: "smooth",
-          maxHeight: isMobile ? "26rem" :"26rem",
+          maxHeight: isMobile ? "26rem" :"40rem",
 
         }}
       >
@@ -118,7 +118,7 @@ const LyricsDisplay: React.FC = () => {
             mb-2 transition-all duration-300 ease-in-out
             ${
               index === currentLyricIndex
-                ? "text-white-500 font-bold text-2xl"
+                ? "text-white-500 font-bold text-xl"
                 : "text-gray-300 text-base"
             }
           `}

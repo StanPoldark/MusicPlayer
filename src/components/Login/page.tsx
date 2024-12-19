@@ -19,6 +19,7 @@ import {
 } from "@/redux/modules/login/reducer";
 import { useAppSelector, useAppDispatch } from "@/hooks/hooks";
 import { UserInfo } from "@/redux/modules/types";
+import Image from 'next/image';
 
 enum LoginStatus {
   INITIAL,
@@ -372,15 +373,13 @@ const Login = () => {
       <div className="flex flex-col items-center justify-center">
         <div className="p-8 rounded-lg shadow-md w-80">
           <div className="flex justify-center flex-row gap-4">
+            <Image src={userInfo?.avatarUrl} alt="Avatar" width={50} height={50} />
             <button
-              disabled
-              className="px-4 py-2 rounded bg-gradient-to-r from-blue-500 via-gray-800 to-purple-700 text-white hover:from-blue-600 hover:to-purple-800 disabled:bg-gray-400"
-            >
+              disabled  >
               {userInfo?.nickname}
             </button>
             <button
               onClick={handleLogout}
-              className="px-4 py-2 rounded bg-gradient-to-r from-blue-500 via-gray-800 to-purple-700 text-white hover:from-blue-600 hover:to-purple-800 disabled:bg-gray-400"
             >
               <EnterOutlined />
             </button>
