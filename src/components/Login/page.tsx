@@ -7,8 +7,8 @@ import {
   getLoginState,
   logout,
   checkQRCodeState,
-  getCaptchaCode, 
-  loginByCaptcha 
+  getCaptchaCode,
+  loginByCaptcha,
 } from "@/app/api/login";
 import { message, Input, Button, Modal } from "antd";
 import { EnterOutlined } from "@ant-design/icons";
@@ -19,24 +19,24 @@ import {
 } from "@/redux/modules/login/reducer";
 import { useAppSelector, useAppDispatch } from "@/hooks/hooks";
 import { UserInfo } from "@/redux/modules/types";
-import Image from 'next/image';
+import Image from "next/image";
 
 enum LoginStatus {
   INITIAL,
   GENERATING_QR,
   WAITING_SCAN,
   LOGGED_IN,
-  CAPTCHA_LOGIN
+  CAPTCHA_LOGIN,
 }
-
-
 
 const Login = () => {
   const dispatch = useAppDispatch();
   const { userInfo } = useAppSelector((state) => state.login);
 
   const [qrImg, setQrImg] = useState<string>("");
-  const [loginStatus, setLoginStatus] = useState<LoginStatus>(LoginStatus.INITIAL);
+  const [loginStatus, setLoginStatus] = useState<LoginStatus>(
+    LoginStatus.INITIAL
+  );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Captcha login state
@@ -44,7 +44,8 @@ const Login = () => {
   const [captchaCode, setCaptchaCode] = useState<string>("");
   const [confirmLoading, setConfirmLoading] = useState<boolean>(false);
   const [sendCaptchaLoading, setSendCaptchaLoading] = useState<boolean>(false);
-  const [sendCaptchaDisabled, setSendCaptchaDisabled] = useState<boolean>(false);
+  const [sendCaptchaDisabled, setSendCaptchaDisabled] =
+    useState<boolean>(false);
   const [sendCaptchaText, setSendCaptchaText] = useState<string>("获取验证码");
 
   // Using useRef to store timers, preventing re-renders
@@ -106,7 +107,7 @@ const Login = () => {
 
   // Captcha login methods
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPhone(e.target.value.replace(/[^\d]/g, ''));
+    setPhone(e.target.value.replace(/[^\d]/g, ""));
   };
 
   const handleCaptchaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -115,11 +116,11 @@ const Login = () => {
 
   const oneMinuteDisabled = () => {
     setSendCaptchaDisabled(true);
-    setSendCaptchaText('获取验证码(60)');
+    setSendCaptchaText("获取验证码(60)");
 
     const timer = setTimeout(() => {
       setSendCaptchaDisabled(false);
-      setSendCaptchaText('获取验证码');
+      setSendCaptchaText("获取验证码");
       clearTimeout(timer);
     }, 60000);
   };
@@ -128,26 +129,25 @@ const Login = () => {
     if (phone) {
       setSendCaptchaLoading(true);
       try {
-        
-        const res = await getCaptchaCode(parseInt(phone) );
+        const res = await getCaptchaCode(parseInt(phone));
 
         if (res && res.data) {
-          message.success('验证码已发送！，请注意查收');
+          message.success("验证码已发送！，请注意查收");
           oneMinuteDisabled();
         }
       } catch (error) {
-        message.error('发送验证码失败',error);
+        message.error("发送验证码失败", error);
       } finally {
         setSendCaptchaLoading(false);
       }
     } else {
-      message.error('请输入完整信息');
+      message.error("请输入完整信息");
     }
   };
 
   const handleCaptchaLogin = async () => {
     if (!phone || !captchaCode) {
-      message.error('请输入完整信息');
+      message.error("请输入完整信息");
       return;
     }
 
@@ -157,19 +157,22 @@ const Login = () => {
       // First, check if already logged in
       const loginStateRes = await getLoginState(localStorage.getItem("cookie"));
       if (loginStateRes.data.account) {
-        message.error('错误：账号已登录');
+        message.error("错误：账号已登录");
         setConfirmLoading(false);
         return;
       }
-     
+
       // Proceed with login
-      const res = await loginByCaptcha({ phone: parseInt(phone), captcha: captchaCode });
-      
+      const res = await loginByCaptcha({
+        phone: parseInt(phone),
+        captcha: captchaCode,
+      });
+
       if (res) {
-        message.success('登录成功！');
+        message.success("登录成功！");
         dispatch(changeLoginState(true));
         setLoginStatus(LoginStatus.LOGGED_IN);
-    
+
         // Fetch and set user info
         const userInfoRes = await getLoginState(localStorage.getItem("cookie"));
         if (userInfoRes.data.profile) {
@@ -182,7 +185,7 @@ const Login = () => {
         }
       }
     } catch (error) {
-      message.error('登录失败');
+      message.error("登录失败");
       console.error(error);
     } finally {
       setConfirmLoading(false);
@@ -276,7 +279,6 @@ const Login = () => {
     }
   };
 
-
   const renderQRCodeSection = () => {
     if (
       loginStatus !== LoginStatus.WAITING_SCAN &&
@@ -309,8 +311,8 @@ const Login = () => {
             />
           )}
           <p className="mt-4 text-center">
-            {loginStatus === LoginStatus.GENERATING_QR 
-              ? "正在生成二维码..." 
+            {loginStatus === LoginStatus.GENERATING_QR
+              ? "正在生成二维码..."
               : "请使用网易云音乐扫描二维码登录"}
           </p>
         </div>
@@ -344,7 +346,7 @@ const Login = () => {
               type="password"
               className="flex-grow mr-2"
               addonAfter={
-                <Button 
+                <Button
                   onClick={handleSendCaptcha}
                   loading={sendCaptchaLoading}
                   disabled={sendCaptchaDisabled}
@@ -355,7 +357,7 @@ const Login = () => {
               }
             />
           </div>
-          <Button 
+          <Button
             onClick={handleCaptchaLogin}
             loading={confirmLoading}
             className="w-full"
@@ -373,14 +375,14 @@ const Login = () => {
       <div className="flex flex-col items-center justify-center">
         <div className="p-8 rounded-lg shadow-md w-80">
           <div className="flex justify-center flex-row gap-4">
-            <Image src={userInfo?.avatarUrl} alt="Avatar" width={50} height={50} />
-            <button
-              disabled  >
-              {userInfo?.nickname}
-            </button>
-            <button
-              onClick={handleLogout}
-            >
+            <Image
+              src={userInfo?.avatarUrl}
+              alt="Avatar"
+              width={50}
+              height={50}
+            />
+            <button disabled>{userInfo?.nickname}</button>
+            <button onClick={handleLogout}>
               <EnterOutlined />
             </button>
           </div>
