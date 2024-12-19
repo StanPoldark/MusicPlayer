@@ -278,9 +278,7 @@ const TrackList: React.FC = () => {
 
         const updatedTrack = {
           ...track,
-          url: `${encodeURIComponent(
-            songData.data[0].url
-          )}`,
+          url: `${encodeURIComponent(songData.data[0].url.replace('http://', 'https://'))}` ,
           lyric: songLyric.lrc.lyric,
         };
 
