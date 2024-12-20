@@ -13,8 +13,7 @@ import { List, Spin, message } from "antd";
 import { LucidePlus } from "lucide-react";
 import {
   setCurrentTrack,
-  addTrackToPlaylist,
-  togglePlay
+  addTrackToPlaylist
 } from "@/redux/modules/musicPlayer/reducer";
 import {
   setSubscribedList,
@@ -210,7 +209,6 @@ const TrackList: React.FC = () => {
 
       if (existingTrack) {
         // Track already exists, dispatch it without re-fetching
-        dispatch(togglePlay());
         dispatch(setCurrentTrack(existingTrack));
         dispatch(addTrackToPlaylist({ from: "play", track: existingTrack }));
         return;

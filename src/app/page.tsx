@@ -11,6 +11,7 @@ import "./index.scss";
 import MusicSearch from "@/components/Search/page"
 import mediaQuery from "@/utils/mediaQuery"
 import BottomNavigation from "@/components/BottomNavigation/page"; 
+import SnowfallBackground from "@/components/Snow/page"; 
 import { 
   UserOutlined, 
   SearchOutlined, 
@@ -86,6 +87,7 @@ export default function HomePage() {
 
   return (
     <AudioProvider>
+      <SnowfallBackground />
       <div style={{ margin: "20px", width: "80%", height: isMobile ? "90%" : "80%" }}>
         {isMobile ? (
           <>

@@ -29,6 +29,7 @@ interface MusicPlayerState {
   spectrumData: number[];
   isAnalyzing: boolean;
   repeatMode: RepeatMode; // New repeat mode state
+  hasUserInteracted:boolean;
 }
 
 const initialState: MusicPlayerState = {
@@ -38,7 +39,8 @@ const initialState: MusicPlayerState = {
   playlist: initialTracks,
   spectrumData: new Array(64).fill(0),
   isAnalyzing: false,
-  repeatMode: 'off'
+  repeatMode: 'off',
+  hasUserInteracted:false
 };
 
 // 创建 Slice
@@ -58,7 +60,9 @@ const musicPlayerSlice = createSlice({
       const nextIndex = (currentIndex + 1) % repeatModes.length;
       state.repeatMode = repeatModes[nextIndex];
     },
-
+    Interacted: (state) => {
+      state.hasUserInteracted = true;
+    },
     // Update nextTrack to respect repeat modes
     nextTrack: (state) => {
       const currentIndex = state.playlist.findIndex(
@@ -156,7 +160,8 @@ export const {
   addTrackToPlaylist,
   removeTrackFromPlaylist,
   reorderPlaylist,
-  toggleRepeatMode 
+  toggleRepeatMode ,
+  Interacted
 } = musicPlayerSlice.actions;
 
 export default musicPlayerSlice.reducer;

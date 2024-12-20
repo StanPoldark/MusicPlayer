@@ -26,6 +26,7 @@
     "react-transition-group": "^4.4.5",
     "redux": "^5.0.1",
     "sass": "^1.81.0",
+    "tone": "^15.0.4",
     "vanilla-tilt": "^1.8.1"
   },
   "devDependencies": {

@@ -24,25 +24,29 @@ import {
   previousTrack,
   setVolume,
   toggleRepeatMode,
+  Interacted
 } from "@/redux/modules/musicPlayer/reducer";
 import { useAudio } from "@/contexts/AudioContext";
 import "./index.scss";
 import AudioSpectrum from "@/components/Spectrum/page";
 import { Slider } from "antd";
-
+import AudioEffects from "@/components/AudioEffect/page";
 const MusicPlayer: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { currentTrack, isPlaying, volume, repeatMode } = useAppSelector(
+  const { currentTrack, isPlaying, volume, repeatMode,hasUserInteracted } = useAppSelector(
     (state) => state.musicPlayer
   );
-  const { setAudio } = useAudio();
+  const { setAudioContext,setAudio } = useAudio();
   const audioRef = useRef<HTMLAudioElement>(null);
-  const [hasUserInteracted, setHasUserInteracted] = useState(false);
+  const [audioContext, setLocalAudioContext] = useState<AudioContext | null>(null);
+  const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [isVolumeVisible, setIsVolumeVisible] = useState(false);
   const volumeContainerRef = useRef<HTMLDivElement>(null);
+
+
 
   // Memoized time formatting function
   const formatTime = useCallback((time: number) => {
@@ -68,12 +72,32 @@ const MusicPlayer: React.FC = () => {
     }
   }, [repeatMode]);
 
-  // Consolidated play click handler
   const handlePlayClick = useCallback(() => {
     if (!audioRef.current) return;
+    if(!hasUserInteracted) {
+      dispatch(Interacted());
+    }
+    if (!audioContext) {
+      // Initialize AudioContext
+      const context = new (window.AudioContext || (window as any).webkitAudioContext)();
+      setLocalAudioContext(context);
 
-    setHasUserInteracted(true);
+      const analyser = context.createAnalyser();
+      analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0.8;
+      setAnalyser(analyser);
 
+      const sourceNode = context.createMediaElementSource(audioRef.current);
+      sourceNode.connect(analyser);
+      analyser.connect(context.destination);
+
+      setAudioContext(context);
+    } else if (audioContext.state === "suspended") {
+      // Resume suspended AudioContext
+      audioContext.resume().catch(console.error);
+    }
+
+    // Toggle play/pause
     if (isPlaying) {
       audioRef.current.pause();
     } else {
@@ -81,15 +105,14 @@ const MusicPlayer: React.FC = () => {
     }
 
     dispatch(togglePlay());
-  }, [dispatch, isPlaying]);
+  }, [audioContext, isPlaying, dispatch]);
 
   // Audio source and playback management
-  useEffect(() => {
+   useEffect(() => {
     if (!audioRef.current || !currentTrack) return;
-
+    
     // Set the audio source directly using currentTrack.url
     audioRef.current.src = currentTrack.url;
-
     // Set volume
     audioRef.current.volume = volume;
     setAudio(audioRef.current);
@@ -108,7 +131,8 @@ const MusicPlayer: React.FC = () => {
     return () => {
       audioRef.current?.removeEventListener("loadedmetadata", metadataHandler);
     };
-  }, [currentTrack?.url, volume, hasUserInteracted, isPlaying, setAudio]);
+  }, [currentTrack?.url, volume, hasUserInteracted, setAudio]);
+
 
   // Progress and playback tracking
   useEffect(() => {
@@ -172,7 +196,10 @@ const MusicPlayer: React.FC = () => {
 
   return (
     <div className="w-[80%] rounded-lg mx-auto">
-      <AudioSpectrum hasUserInteracted={hasUserInteracted} />
+        <AudioSpectrum
+        audioContext={audioContext}
+        analyser={analyser}
+      />
       <div>
         <audio ref={audioRef} id="audio-element" />
         <div

@@ -246,8 +246,7 @@ const Login = () => {
               break;
           }
         } catch (error) {
-          console.error("Error in polling:", error);
-          setErrorMessage("Login polling failed");
+          setErrorMessage(error);
           cleanupPolling();
         }
       }, 3000);
