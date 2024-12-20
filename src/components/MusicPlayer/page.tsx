@@ -45,8 +45,7 @@ const MusicPlayer: React.FC = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [isVolumeVisible, setIsVolumeVisible] = useState(false);
   const volumeContainerRef = useRef<HTMLDivElement>(null);
-
-
+  const [sourceNode,setsourceNode] = useState<AudioBufferSourceNode | null>(null);
 
   // Memoized time formatting function
   const formatTime = useCallback((time: number) => {
@@ -86,9 +85,10 @@ const MusicPlayer: React.FC = () => {
       analyser.fftSize = 256;
       analyser.smoothingTimeConstant = 0.8;
       setAnalyser(analyser);
+      const node = context.createMediaElementSource(audioRef.current);
+      setsourceNode(node);
 
-      const sourceNode = context.createMediaElementSource(audioRef.current);
-      sourceNode.connect(analyser);
+      node.connect(analyser);
       analyser.connect(context.destination);
 
       setAudioContext(context);
@@ -200,6 +200,7 @@ const MusicPlayer: React.FC = () => {
         audioContext={audioContext}
         analyser={analyser}
       />
+      <AudioEffects audioContext={audioContext} audioRef={audioRef} sourceNode={sourceNode} />
       <div>
         <audio ref={audioRef} id="audio-element" />
         <div

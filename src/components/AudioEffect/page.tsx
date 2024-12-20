@@ -1,20 +1,23 @@
-"use client";
-
 import React, { useEffect, useState } from "react";
 import * as Tone from "tone";
+import { useAppSelector } from "@/hooks/hooks";
 
 interface AudioEffectsProps {
   audioRef: React.RefObject<HTMLAudioElement>;
-
+  audioContext: AudioContext | null;
+  sourceNode: AudioBufferSourceNode | null;
 }
 
-const AudioEffects = ({ audioRef}: AudioEffectsProps) => {
+const AudioEffects = ({ audioRef, audioContext ,sourceNode}: AudioEffectsProps) => {
   const [effectsChain, setEffectsChain] = useState<{
     reverb?: Tone.Reverb;
     eq?: Tone.EQ3;
     compressor?: Tone.Compressor;
   }>({});
   const [selectedPreset, setSelectedPreset] = useState("normal");
+    const { hasUserInteracted } = useAppSelector(
+      (state) => state.musicPlayer
+    );
 
   const presets = {
     normal: {
@@ -41,53 +44,62 @@ const AudioEffects = ({ audioRef}: AudioEffectsProps) => {
   };
 
   useEffect(() => {
-    if (!audioRef.current) return;
+    const initializeEffects = async () => {
+      if (!audioRef.current || !audioContext ) return;
 
-    // 创建 Web Audio API 的原生音频源节点
-    const audioContext = Tone.getContext();
-    const sourceNode = audioContext.createMediaElementSource(audioRef.current);
+      // 确保 Tone.js 的上下文启动
+      await Tone.start();
+      Tone.setContext(audioContext);
 
-    // 创建 Tone.js 的音效处理链
-    const reverb = new Tone.Reverb({ decay: 3 }).toDestination();
-    const eq = new Tone.EQ3().connect(reverb);
-    const compressor = new Tone.Compressor().connect(eq);
+      // 创建 Tone.js 的音效处理链
+      const reverb = new Tone.Reverb({ decay: 3 }).toDestination();
+      const eq = new Tone.EQ3().connect(reverb);
+      const compressor = new Tone.Compressor().connect(eq);
 
-    // 使用 Tone.js 的 Gain 节点桥接
-    const gainNode = new Tone.Gain();
-    sourceNode.connect(gainNode.input); // 将原生节点连接到 Tone.js 节点
-    gainNode.connect(compressor); // 再接入 Tone.js 音效链
+      // 使用 Tone.js 的 Gain 节点桥接
+      const gainNode = new Tone.Gain();
+      sourceNode.connect(gainNode.input); // 将原生节点连接到 Tone.js 节点
+      gainNode.connect(compressor); // 再接入 Tone.js 音效链
+      setEffectsChain({ reverb, eq, compressor });
 
-    setEffectsChain({ reverb, eq, compressor });
-
-    return () => {
-      reverb.dispose();
-      eq.dispose();
-      compressor.dispose();
-      gainNode.dispose();
-      sourceNode.disconnect();
+      return () => {
+        reverb.dispose();
+        eq.dispose();
+        compressor.dispose();
+        gainNode.dispose();
+        sourceNode.disconnect();
+      };
     };
-  }, [audioRef]);
+
+    initializeEffects().catch((error) =>
+      console.error("Error initializing audio effects:", error)
+    );
+  }, [audioRef, audioContext]);
 
   const applyPreset = (presetName: keyof typeof presets) => {
     const preset = presets[presetName];
-
+  
+    // Ensure valid ranges for Tone.js properties
+    const validReverb = Math.max(preset.reverb, 0.001); // Minimum reverb decay
+    const validCompression = Math.max(Math.min(preset.compression, 0), -100); // Ensure compression is between -100 and 0
+  
+    // Apply the preset values with validation
     if (effectsChain.reverb) {
-      effectsChain.reverb.set({ decay: preset.reverb });
+      effectsChain.reverb.set({ decay: validReverb });
     }
-
+  
     if (effectsChain.eq) {
       effectsChain.eq.low.value = preset.bass;
       effectsChain.eq.mid.value = preset.mid;
       effectsChain.eq.high.value = preset.treble;
     }
-
+  
     if (effectsChain.compressor) {
-      effectsChain.compressor.threshold.value = preset.compression;
+      effectsChain.compressor.threshold.value = validCompression;
     }
-
     setSelectedPreset(presetName);
   };
-
+  
   return (
     <div className="flex gap-4 my-4">
       {Object.keys(presets).map((preset) => (
@@ -103,6 +115,6 @@ const AudioEffects = ({ audioRef}: AudioEffectsProps) => {
       ))}
     </div>
   );
-}
+};
 
 export default AudioEffects;

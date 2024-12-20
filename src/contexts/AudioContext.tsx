@@ -23,7 +23,7 @@ export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
   const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
   const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
   const [webAudioSourceNode, setWebAudioSourceNode] = useState<MediaElementAudioSourceNode | null>(null);
-    const { hasUserInteracted } = useAppSelector(
+  const { hasUserInteracted } = useAppSelector(
       (state) => state.musicPlayer
     );
 
