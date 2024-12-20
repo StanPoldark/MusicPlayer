@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import * as Tone from "tone";
-import { useAppSelector } from "@/hooks/hooks";
 
 interface AudioEffectsProps {
   audioRef: React.RefObject<HTMLAudioElement>;
@@ -8,17 +7,17 @@ interface AudioEffectsProps {
   sourceNode: AudioBufferSourceNode | null;
 }
 
-const AudioEffects = ({ audioRef, audioContext ,sourceNode}: AudioEffectsProps) => {
+const AudioEffects = ({
+  audioRef,
+  audioContext,
+  sourceNode,
+}: AudioEffectsProps) => {
   const [effectsChain, setEffectsChain] = useState<{
     reverb?: Tone.Reverb;
     eq?: Tone.EQ3;
     compressor?: Tone.Compressor;
   }>({});
   const [selectedPreset, setSelectedPreset] = useState("normal");
-    const { hasUserInteracted } = useAppSelector(
-      (state) => state.musicPlayer
-    );
-
   const presets = {
     normal: {
       reverb: 0,
@@ -41,11 +40,24 @@ const AudioEffects = ({ audioRef, audioContext ,sourceNode}: AudioEffectsProps) 
       treble: 1,
       compression: -15,
     },
+    ambient: {
+      reverb: 0.8, // 强烈的混响，营造深远空间感
+      bass: 2,
+      mid: 0,
+      treble: 2,
+      compression: -30, // 更大的动态范围
+    },
+    hall: {
+      reverb: 0.7, // 大厅混响效果
+      bass: 1,
+      mid: 1,
+      treble: 0,
+      compression: -20,
+    },
   };
-
   useEffect(() => {
     const initializeEffects = async () => {
-      if (!audioRef.current || !audioContext ) return;
+      if (!audioRef.current || !audioContext) return;
 
       // 确保 Tone.js 的上下文启动
       await Tone.start();
@@ -78,28 +90,28 @@ const AudioEffects = ({ audioRef, audioContext ,sourceNode}: AudioEffectsProps) 
 
   const applyPreset = (presetName: keyof typeof presets) => {
     const preset = presets[presetName];
-  
+
     // Ensure valid ranges for Tone.js properties
     const validReverb = Math.max(preset.reverb, 0.001); // Minimum reverb decay
     const validCompression = Math.max(Math.min(preset.compression, 0), -100); // Ensure compression is between -100 and 0
-  
+
     // Apply the preset values with validation
     if (effectsChain.reverb) {
       effectsChain.reverb.set({ decay: validReverb });
     }
-  
+
     if (effectsChain.eq) {
       effectsChain.eq.low.value = preset.bass;
       effectsChain.eq.mid.value = preset.mid;
       effectsChain.eq.high.value = preset.treble;
     }
-  
+
     if (effectsChain.compressor) {
       effectsChain.compressor.threshold.value = validCompression;
     }
     setSelectedPreset(presetName);
   };
-  
+
   return (
     <div className="flex gap-4 my-4">
       {Object.keys(presets).map((preset) => (
