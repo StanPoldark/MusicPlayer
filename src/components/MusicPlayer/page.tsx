@@ -30,6 +30,7 @@ import { useAudio } from "@/contexts/AudioContext";
 import "./index.scss";
 import AudioSpectrum from "@/components/Spectrum/page";
 import { Slider } from "antd";
+
 const MusicPlayer: React.FC = () => {
   const dispatch = useAppDispatch();
   // 从redux中获取当前播放的曲目、是否播放、音量、重复模式、用户是否交互

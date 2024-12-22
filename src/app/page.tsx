@@ -1,18 +1,19 @@
 "use client";
 import React, { useState } from "react";
 import { Row, Col, Drawer, Collapse } from "antd";
+import { AudioProvider } from "@/contexts/AudioContext";
 import MusicPlayer from "@/components/MusicPlayer/page";
 import Login from "@/components/Login/page";
 import PlayList from "@/components/PlayList/page";
-import { AudioProvider } from "@/contexts/AudioContext";
 import TrackList from "@/components/TrackList/page";
 import LyricsDisplay from "@/components/Lyrics/page";
-import "./index.scss";
 import MusicSearch from "@/components/Search/page";
 import mediaQuery from "@/utils/mediaQuery";
 import BottomNavigation from "@/components/BottomNavigation/page";
 import SnowfallBackground from "@/components/Snow/page";
 import AudioEffects from "@/components/AudioEffect/page";
+import Live2DViewer from "@/components/Live2DViewer/page"
+
 import {
   UserOutlined,
   SearchOutlined,
@@ -20,6 +21,7 @@ import {
   UnorderedListOutlined,
   ControlOutlined 
 } from "@ant-design/icons";
+import "./index.scss";
 
 export default function HomePage() {
   const isMobile = mediaQuery("(max-width: 768px)");
@@ -105,6 +107,7 @@ export default function HomePage() {
   return (
     <AudioProvider>
       <SnowfallBackground />
+      <Live2DViewer />
       <div
         style={{
           margin: "20px",
