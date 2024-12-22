@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import { Row, Col, Drawer,Collapse  } from "antd";
+import { Row, Col, Drawer, Collapse } from "antd";
 import MusicPlayer from "@/components/MusicPlayer/page";
 import Login from "@/components/Login/page";
 import PlayList from "@/components/PlayList/page";
@@ -8,16 +8,18 @@ import { AudioProvider } from "@/contexts/AudioContext";
 import TrackList from "@/components/TrackList/page";
 import LyricsDisplay from "@/components/Lyrics/page";
 import "./index.scss";
-import MusicSearch from "@/components/Search/page"
-import mediaQuery from "@/utils/mediaQuery"
-import BottomNavigation from "@/components/BottomNavigation/page"; 
-import SnowfallBackground from "@/components/Snow/page"; 
-import { 
-  UserOutlined, 
-  SearchOutlined, 
-  PlayCircleOutlined, 
-  UnorderedListOutlined 
-} from '@ant-design/icons';
+import MusicSearch from "@/components/Search/page";
+import mediaQuery from "@/utils/mediaQuery";
+import BottomNavigation from "@/components/BottomNavigation/page";
+import SnowfallBackground from "@/components/Snow/page";
+import AudioEffects from "@/components/AudioEffect/page";
+import {
+  UserOutlined,
+  SearchOutlined,
+  PlayCircleOutlined,
+  UnorderedListOutlined,
+  ControlOutlined 
+} from "@ant-design/icons";
 
 export default function HomePage() {
   const isMobile = mediaQuery("(max-width: 768px)");
@@ -26,54 +28,69 @@ export default function HomePage() {
   // Bottom navigation items for mobile
   const mobileNavItems = [
     {
-      key: 'login',
+      key: "login",
       icon: <UserOutlined />,
-      label: 'Login',
-      component: <Login />
+      label: "Login",
+      component: <Login />,
     },
     {
-      key: 'search',
+      key: "search",
       icon: <SearchOutlined />,
-      label: 'Search',
-      component: <MusicSearch />
+      label: "Search",
+      component: <MusicSearch />,
     },
     {
-      key: 'tracklist',
+      key: "tracklist",
       icon: <UnorderedListOutlined />,
-      label: 'Track List',
-      component: <TrackList />
+      label: "Track List",
+      component: <TrackList />,
     },
     {
-      key: 'playlist',
+      key: "playlist",
       icon: <PlayCircleOutlined />,
-      label: 'Play List',
-      component: <PlayList />
-    }
+      label: "Play List",
+      component: <PlayList />,
+    },
+    {
+      key: "audioeffect",
+      icon: <ControlOutlined  />,
+      label: "Audio Effects",
+      component: <AudioEffects />,
+    },
   ];
 
   const collapseItems = [
     {
-      key: 'tracklist',
-      label: 'Track List',
+      key: "tracklist",
+      label: "Track List",
       children: (
-        <div className="box" style={{ height: "100%",width: "100%"}}>
+        <div className="box" style={{ height: "100%", width: "100%" }}>
           <TrackList />
         </div>
       ),
-      style: { height: "100%",Color: "white"}
+      style: { height: "100%", Color: "white" },
     },
     {
-      key: 'playlist',
-      label: 'Play List',
+      key: "playlist",
+      label: "Play List",
       children: (
-        <div className="box" style={{ height: "100%" ,width: "100%"}}>
+        <div className="box" style={{ height: "100%", width: "100%" }}>
           <PlayList />
         </div>
       ),
-      style: { height: "100%",Color: "white" }
-    }
+      style: { height: "100%", Color: "white" },
+    },
+    {
+      key: "audioeffects",
+      label: "Audio Effects",
+      children: (
+        <div className="box" style={{ height: "100%", width: "100%" }}>
+          <AudioEffects />
+        </div>
+      ),
+      style: { height: "100%", Color: "white" },
+    },
   ];
-
 
   // Close the drawer
   const onClose = () => {
@@ -88,12 +105,21 @@ export default function HomePage() {
   return (
     <AudioProvider>
       <SnowfallBackground />
-      <div style={{ margin: "20px", width: "80%", height: isMobile ? "90%" : "80%" }}>
+      <div
+        style={{
+          margin: "20px",
+          width: "80%",
+          height: isMobile ? "90%" : "80%",
+        }}
+      >
         {isMobile ? (
           <>
-            <Row gutter={0} style={{ height: "100%",paddingBottom: isMobile? "5rem": "0"  }}>
+            <Row
+              gutter={0}
+              style={{ height: "100%", paddingBottom: isMobile ? "5rem" : "0" }}
+            >
               <Col span={24}>
-                <div className="box" style={{ height: "100%", width: "100%"}}>
+                <div className="box" style={{ height: "100%", width: "100%" }}>
                   <LyricsDisplay />
                   <MusicPlayer />
                 </div>
@@ -101,13 +127,13 @@ export default function HomePage() {
             </Row>
 
             {/* Replace the previous bottom nav with the new component */}
-            <BottomNavigation 
-              navItems={mobileNavItems} 
-              onItemClick={openDrawer} 
+            <BottomNavigation
+              navItems={mobileNavItems}
+              onItemClick={openDrawer}
             />
 
             {/* Drawers remain the same */}
-            {mobileNavItems.map(item => (
+            {mobileNavItems.map((item) => (
               <Drawer
                 key={item.key}
                 placement="bottom"
@@ -116,7 +142,10 @@ export default function HomePage() {
                 open={activeDrawer === item.key}
                 height="70%"
                 title={item.label}
-                style={{ borderTopLeftRadius: '20px', borderTopRightRadius: '20px' }}
+                style={{
+                  borderTopLeftRadius: "20px",
+                  borderTopRightRadius: "20px",
+                }}
               >
                 <div className="box" style={{ height: "100%", width: "100%" }}>
                   {item.component}
@@ -124,7 +153,7 @@ export default function HomePage() {
               </Drawer>
             ))}
           </>
-        ) :  (
+        ) : (
           <Row gutter={0} style={{ height: "100%" }}>
             <Col span={6}>
               <Row style={{ height: "20%", marginBottom: "1%" }}>
@@ -145,11 +174,11 @@ export default function HomePage() {
               </div>
             </Col>
             <Col span={6} style={{ height: "100%" }}>
-            <Collapse 
-              accordion  // This ensures only one panel can be open at a time
-              items={collapseItems} 
-              defaultActiveKey={[]} 
-            />
+              <Collapse
+                accordion // This ensures only one panel can be open at a time
+                items={collapseItems}
+                defaultActiveKey={[]}
+              />
             </Col>
           </Row>
         )}

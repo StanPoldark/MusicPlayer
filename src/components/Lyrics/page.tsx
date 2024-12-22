@@ -2,21 +2,28 @@ import React, { useState, useEffect, useRef } from "react";
 import { useAppSelector } from "@/hooks/hooks";
 import mediaQuery from "@/utils/mediaQuery"
 
+// 定义歌词行接口
 interface LyricLine {
   time: number;
   text: string;
 }
 
+// 歌词显示组件
 const LyricsDisplay: React.FC = () => {
+  // 判断是否为移动设备
   const isMobile = mediaQuery("(max-width: 768px)");
+  // 从redux中获取当前播放的曲目和播放状态
   const { currentTrack, isPlaying } = useAppSelector(
     (state) => state.musicPlayer
   );
+  // 定义歌词状态
   const [parsedLyrics, setParsedLyrics] = useState<LyricLine[]>([]);
+  // 定义当前歌词索引状态
   const [currentLyricIndex, setCurrentLyricIndex] = useState<number>(-1);
+  // 定义歌词容器引用
   const lyricsContainerRef = useRef<HTMLDivElement>(null);
 
-  // Parse lyrics from string to timed lyrics array
+  // 解析歌词字符串为带时间的歌词数组
   useEffect(() => {
     if (!currentTrack?.lyric) {
       setParsedLyrics([]);
@@ -44,12 +51,12 @@ const LyricsDisplay: React.FC = () => {
       }
     });
 
-    // Sort lyrics by time
+    // 按时间排序歌词
     lyrics.sort((a, b) => a.time - b.time);
     setParsedLyrics(lyrics);
   }, [currentTrack?.lyric]);
 
-  // Synchronize lyrics with current playback time
+  // 同步歌词与当前播放时间
   useEffect(() => {
     const audioElement = document.getElementById(
       "audio-element"
@@ -66,7 +73,7 @@ const LyricsDisplay: React.FC = () => {
       if (index !== currentLyricIndex) {
         setCurrentLyricIndex(index);
 
-        // Scroll to current lyric
+        // 滚动到当前歌词
         if (lyricsContainerRef.current && index !== -1) {
           const lyricElement = lyricsContainerRef.current.children[
             index
@@ -85,7 +92,7 @@ const LyricsDisplay: React.FC = () => {
     return () => clearInterval(intervalId);
   }, [parsedLyrics, currentLyricIndex, isPlaying]);
 
-  // No lyrics or no track
+  // 没有歌词或没有曲目
   if (!currentTrack?.lyric) {
     return (
       <div className="text-center text-gray-500 p-4">No lyrics available</div>

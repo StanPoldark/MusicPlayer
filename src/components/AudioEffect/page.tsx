@@ -1,23 +1,27 @@
 import React, { useEffect, useState } from "react";
 import * as Tone from "tone";
+import { useAudio } from "@/contexts/AudioContext";
+import { useAppSelector } from "@/hooks/hooks";
 
-interface AudioEffectsProps {
-  audioRef: React.RefObject<HTMLAudioElement>;
-  audioContext: AudioContext | null;
-  sourceNode: AudioBufferSourceNode | null;
-}
-
-const AudioEffects = ({
-  audioRef,
-  audioContext,
-  sourceNode,
-}: AudioEffectsProps) => {
+// 定义 AudioEffects 组件
+const AudioEffects = () => {
+  // 定义 effectsChain 状态，用于存储音效处理链
   const [effectsChain, setEffectsChain] = useState<{
     reverb?: Tone.Reverb;
     eq?: Tone.EQ3;
     compressor?: Tone.Compressor;
   }>({});
+
+  // 从 AudioContext 中获取 audioContext、audioRef 和 webAudioSourceNode
+  const { audioContext, webAudioSourceNode } = useAudio();
+
+  // 定义 selectedPreset 状态，用于存储当前选中的音效预设
   const [selectedPreset, setSelectedPreset] = useState("normal");
+
+  // 从 Redux 中获取 hasUserInteracted 状态
+  const { hasUserInteracted } = useAppSelector((state) => state.musicPlayer);
+
+  // 定义音效预设
   const presets = {
     normal: {
       reverb: 0,
@@ -55,39 +59,39 @@ const AudioEffects = ({
       compression: -20,
     },
   };
+
+  // useEffect 钩子，用于初始化音效处理链
   useEffect(() => {
     const initializeEffects = async () => {
-      if (!audioRef.current || !audioContext) return;
+      if (audioContext && webAudioSourceNode && hasUserInteracted) {
+        // 确保用户交互后启动 Tone.js 上下文
+        await Tone.start();
+        Tone.setContext(audioContext);
 
-      // 确保 Tone.js 的上下文启动
-      await Tone.start();
-      Tone.setContext(audioContext);
+        // 创建 Tone.js 的音效处理链
+        const reverb = new Tone.Reverb({ decay: 3 }).toDestination();
+        const eq = new Tone.EQ3().connect(reverb);
+        const compressor = new Tone.Compressor().connect(eq);
 
-      // 创建 Tone.js 的音效处理链
-      const reverb = new Tone.Reverb({ decay: 3 }).toDestination();
-      const eq = new Tone.EQ3().connect(reverb);
-      const compressor = new Tone.Compressor().connect(eq);
-
-      // 使用 Tone.js 的 Gain 节点桥接
-      const gainNode = new Tone.Gain();
-      sourceNode.connect(gainNode.input); // 将原生节点连接到 Tone.js 节点
-      gainNode.connect(compressor); // 再接入 Tone.js 音效链
-      setEffectsChain({ reverb, eq, compressor });
-
-      return () => {
-        reverb.dispose();
-        eq.dispose();
-        compressor.dispose();
-        gainNode.dispose();
-        sourceNode.disconnect();
-      };
+        // 使用 Tone.js 的 Gain 节点桥接
+        const gainNode = new Tone.Gain();
+        webAudioSourceNode.connect(gainNode.input); // 将原生节点连接到 Tone.js 节点
+        gainNode.connect(compressor); // 再接入 Tone.js 音效链
+        setEffectsChain({ reverb, eq, compressor });
+      }
     };
 
-    initializeEffects().catch((error) =>
-      console.error("Error initializing audio effects:", error)
-    );
-  }, [audioRef, audioContext]);
+    initializeEffects();
 
+    return () => {
+      if (effectsChain.reverb) effectsChain.reverb.dispose();
+      if (effectsChain.eq) effectsChain.eq.dispose();
+      if (effectsChain.compressor) effectsChain.compressor.dispose();
+      if (webAudioSourceNode) webAudioSourceNode.disconnect();
+    };
+  }, [audioContext, webAudioSourceNode, effectsChain, hasUserInteracted]);
+
+  // 定义 applyPreset 函数，用于应用音效预设
   const applyPreset = (presetName: keyof typeof presets) => {
     const preset = presets[presetName];
 
@@ -112,19 +116,22 @@ const AudioEffects = ({
     setSelectedPreset(presetName);
   };
 
+  // 返回组件 JSX
   return (
-    <div className="flex gap-4 my-4">
-      {Object.keys(presets).map((preset) => (
-        <button
-          key={preset}
-          className={`px-4 py-2 rounded ${
-            selectedPreset === preset ? "bg-blue-500" : "bg-gray-500"
-          }`}
-          onClick={() => applyPreset(preset as keyof typeof presets)}
-        >
-          {preset.charAt(0).toUpperCase() + preset.slice(1)}
-        </button>
-      ))}
+    <div className="flex flex-col items-center my-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 w-full max-w-lg">
+        {Object.keys(presets).map((preset) => (
+          <button
+            key={preset}
+            className={`w-full px-4 py-2 text-sm md:text-base rounded transition-all duration-300 ${
+              selectedPreset === preset ? "bg-blue-500 text-white" : "bg-gray-500 text-gray-200"
+            } hover:bg-blue-600 hover:scale-105`}
+            onClick={() => applyPreset(preset as keyof typeof presets)}
+          >
+            {preset.charAt(0).toUpperCase() + preset.slice(1)}
+          </button>
+        ))}
+      </div>
     </div>
   );
 };

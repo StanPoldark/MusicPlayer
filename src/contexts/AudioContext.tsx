@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { useAppSelector } from "@/hooks/hooks";
 
-// Define the AudioContextType interface
+// 定义AudioContextType接口
 interface AudioContextType {
   audio: HTMLAudioElement | null;
   setAudio: (audio: HTMLAudioElement | null) => void;
@@ -15,31 +15,36 @@ interface AudioProviderProps {
   children: ReactNode;
 }
 
-// Create the Context
+// 创建Context
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
 
-// Provider component
+// Provider组件
 export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
   const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
   const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
   const [webAudioSourceNode, setWebAudioSourceNode] = useState<MediaElementAudioSourceNode | null>(null);
-  const { hasUserInteracted } = useAppSelector(
-      (state) => state.musicPlayer
-    );
+  const { hasUserInteracted } = useAppSelector((state) => state.musicPlayer);
 
-  // Initialize the audio context only once
-  useEffect(() => {
-    if (!audioContext && hasUserInteracted) {
+  // 初始化AudioContext
+  const initializeAudioContext = () => {
+    if (!audioContext) {
       const context = new (window.AudioContext || (window as any).webkitAudioContext)();
       setAudioContext(context);
+    } else if (audioContext.state === "suspended") {
+      audioContext.resume();
     }
+  };
 
+  useEffect(() => {
+    if (hasUserInteracted) {
+      initializeAudioContext();
+    }
     return () => {
       if (audioContext) {
         audioContext.close();
       }
     };
-  }, [audioContext,hasUserInteracted]);
+  }, [hasUserInteracted, audioContext]);
 
   return (
     <AudioContext.Provider
@@ -52,12 +57,12 @@ export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
         setWebAudioSourceNode,
       }}
     >
-      {children}
+    {children}
     </AudioContext.Provider>
   );
 };
 
-// Custom Hook to access the AudioContext
+// 自定义Hook，用于访问AudioContext
 export const useAudio = (): AudioContextType => {
   const context = useContext(AudioContext);
   if (!context) {

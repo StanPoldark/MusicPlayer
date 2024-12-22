@@ -30,13 +30,13 @@ import { useAudio } from "@/contexts/AudioContext";
 import "./index.scss";
 import AudioSpectrum from "@/components/Spectrum/page";
 import { Slider } from "antd";
-import AudioEffects from "@/components/AudioEffect/page";
 const MusicPlayer: React.FC = () => {
   const dispatch = useAppDispatch();
+  // 从redux中获取当前播放的曲目、是否播放、音量、重复模式、用户是否交互
   const { currentTrack, isPlaying, volume, repeatMode,hasUserInteracted } = useAppSelector(
     (state) => state.musicPlayer
   );
-  const { setAudioContext,setAudio } = useAudio();
+  const { setAudioContext,setAudio,setWebAudioSourceNode } = useAudio();
   const audioRef = useRef<HTMLAudioElement>(null);
   const [audioContext, setLocalAudioContext] = useState<AudioContext | null>(null);
   const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
@@ -45,8 +45,6 @@ const MusicPlayer: React.FC = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [isVolumeVisible, setIsVolumeVisible] = useState(false);
   const volumeContainerRef = useRef<HTMLDivElement>(null);
-  const [sourceNode,setsourceNode] = useState<AudioBufferSourceNode | null>(null);
-
   // Memoized time formatting function
   const formatTime = useCallback((time: number) => {
     const minutes = Math.floor(time / 60);
@@ -86,8 +84,8 @@ const MusicPlayer: React.FC = () => {
       analyser.smoothingTimeConstant = 0.8;
       setAnalyser(analyser);
       const node = context.createMediaElementSource(audioRef.current);
-      setsourceNode(node);
-
+      setWebAudioSourceNode(node);
+      setAudioContext(audioContext)
       node.connect(analyser);
       analyser.connect(context.destination);
 
@@ -200,7 +198,6 @@ const MusicPlayer: React.FC = () => {
         audioContext={audioContext}
         analyser={analyser}
       />
-      <AudioEffects audioContext={audioContext} audioRef={audioRef} sourceNode={sourceNode} />
       <div>
         <audio ref={audioRef} id="audio-element" />
         <div
@@ -218,7 +215,7 @@ const MusicPlayer: React.FC = () => {
 
             {isVolumeVisible && (
               <div
-                className="absolute left-1/2 bottom-full mb-2 transform -translate-x-1/2 transition-opacity duration-200 ease-in-out white_slider"
+                className="absolute  bottom-full transition-opacity duration-200 ease-in-out white_slider"
                 style={{ opacity: isVolumeVisible ? 1 : 0, height: "3rem", marginBottom: "1rem" }}
               >
                 <Slider
@@ -226,12 +223,9 @@ const MusicPlayer: React.FC = () => {
                   max={1}
                   value={volume}
                   vertical
+                  className="h-full"
                   onChange={handleVolumeChange}
                   step={0.01}
-                  tooltip={{
-                    open: false,
-                    formatter: () => null,
-                  }}
                 />
               </div>
             )}

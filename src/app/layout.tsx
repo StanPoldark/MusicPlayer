@@ -17,8 +17,6 @@ const Layout = ({ children }: any) => {
 
     <html>
       <body>
-
-      
       <TransitionGroup className='main-wrapper animate__animated animate__fadeIn'  id="bg">
         <CSSTransition
           timeout={3000}

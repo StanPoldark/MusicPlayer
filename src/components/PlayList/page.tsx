@@ -9,20 +9,27 @@ import {
 import { Track } from '@/redux/modules/types';
 import "./index.scss";
 
+// 定义PlaylistManager组件
 const PlaylistManager: React.FC = () => {
+  // 获取dispatch函数
   const dispatch = useAppDispatch();
+  // 从redux中获取playlist
   const { playlist } = useAppSelector(state => state.musicPlayer);
+  // 定义拖拽的track
   const [draggedItem, setDraggedItem] = useState<Track | null>(null);
 
+  // 拖拽开始时设置拖拽的track
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>, track: Track) => {
     setDraggedItem(track);
     e.dataTransfer?.setData('text/plain', track.id.toString());
   };
 
+  // 拖拽时阻止默认行为
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
   };
 
+  // 拖拽结束时更新playlist
   const handleDrop = (e: React.DragEvent<HTMLDivElement>, targetTrack: Track) => {
     e.preventDefault();
     if (!draggedItem) return;
@@ -42,6 +49,7 @@ const PlaylistManager: React.FC = () => {
     }));
   };
 
+  // 移除track
   const handleRemoveTrack = (trackId: number) => {
     dispatch(removeTrackFromPlaylist(trackId));
   };

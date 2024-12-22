@@ -20,7 +20,6 @@ import {
 import { useAppSelector, useAppDispatch } from "@/hooks/hooks";
 import { UserInfo } from "@/redux/modules/types";
 import Image from "next/image";
-
 enum LoginStatus {
   INITIAL,
   GENERATING_QR,
@@ -29,30 +28,33 @@ enum LoginStatus {
   CAPTCHA_LOGIN,
 }
 
+// 登录组件
 const Login = () => {
+  // 获取dispatch和userInfo
   const dispatch = useAppDispatch();
   const { userInfo } = useAppSelector((state) => state.login);
 
-  const [qrImg, setQrImg] = useState<string>("");
+  // 设置二维码图片、登录状态和错误信息
+  const [qrImg, setQrImg] = useState<string>(""); // 二维码图片
   const [loginStatus, setLoginStatus] = useState<LoginStatus>(
     LoginStatus.INITIAL
-  );
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  ); // 登录状态
+  const [errorMessage, setErrorMessage] = useState<string | null>(null); // 错误信息
 
-  // Captcha login state
-  const [phone, setPhone] = useState<string>("");
-  const [captchaCode, setCaptchaCode] = useState<string>("");
-  const [confirmLoading, setConfirmLoading] = useState<boolean>(false);
-  const [sendCaptchaLoading, setSendCaptchaLoading] = useState<boolean>(false);
+  // Captcha登录状态
+  const [phone, setPhone] = useState<string>(""); // 手机号
+  const [captchaCode, setCaptchaCode] = useState<string>(""); // 验证码
+  const [confirmLoading, setConfirmLoading] = useState<boolean>(false); // 确认按钮加载状态
+  const [sendCaptchaLoading, setSendCaptchaLoading] = useState<boolean>(false); // 发送验证码按钮加载状态
   const [sendCaptchaDisabled, setSendCaptchaDisabled] =
-    useState<boolean>(false);
-  const [sendCaptchaText, setSendCaptchaText] = useState<string>("获取验证码");
+    useState<boolean>(false); // 发送验证码按钮禁用状态
+  const [sendCaptchaText, setSendCaptchaText] = useState<string>("获取验证码"); // 发送验证码按钮文本
 
-  // Using useRef to store timers, preventing re-renders
+  // 使用useRef存储定时器，防止重新渲染
   const pollingIntervalRef = useRef<NodeJS.Timer | null>(null);
   const pollingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Check existing login state on component mount
+  // 组件挂载时检查登录状态
   useEffect(() => {
     const storedCookie = localStorage.getItem("cookie");
     if (storedCookie) {
@@ -60,7 +62,7 @@ const Login = () => {
     }
   }, []);
 
-  // Cleanup function for polling
+  // 清理轮询函数
   const cleanupPolling = useCallback(() => {
     if (pollingIntervalRef.current) {
       clearInterval(pollingIntervalRef.current as unknown as number);
@@ -72,13 +74,14 @@ const Login = () => {
     }
   }, []);
 
-  // Cleanup on component unmount
+  // 组件卸载时清理轮询
   useEffect(() => {
     return () => {
       cleanupPolling();
     };
   }, [cleanupPolling]);
 
+  // 检查登录状态
   const checkLoginStatus = async (cookie: string): Promise<boolean> => {
     try {
       const response = await getLoginState(cookie);
@@ -98,14 +101,13 @@ const Login = () => {
 
       return false;
     } catch (error) {
-      console.error("Error details:", error);
-      message.error("Error checking login status");
+      message.error("Error checking login status",error);
       setErrorMessage("Login verification failed");
       return false;
     }
   };
 
-  // Captcha login methods
+  // Captcha登录方法
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPhone(e.target.value.replace(/[^\d]/g, ""));
   };
@@ -154,7 +156,7 @@ const Login = () => {
     setConfirmLoading(true);
 
     try {
-      // First, check if already logged in
+      // 首先检查是否已登录
       const loginStateRes = await getLoginState(localStorage.getItem("cookie"));
       if (loginStateRes.data.account) {
         message.error("错误：账号已登录");
@@ -162,7 +164,7 @@ const Login = () => {
         return;
       }
 
-      // Proceed with login
+      // 进行登录
       const res = await loginByCaptcha({
         phone: parseInt(phone),
         captcha: captchaCode,
@@ -173,7 +175,7 @@ const Login = () => {
         dispatch(changeLoginState(true));
         setLoginStatus(LoginStatus.LOGGED_IN);
 
-        // Fetch and set user info
+        // 获取并设置用户信息
         const userInfoRes = await getLoginState(localStorage.getItem("cookie"));
         if (userInfoRes.data.profile) {
           const user: UserInfo = {
@@ -185,20 +187,20 @@ const Login = () => {
         }
       }
     } catch (error) {
-      message.error("登录失败");
-      console.error(error);
+      message.error("登录失败",error);
     } finally {
       setConfirmLoading(false);
     }
   };
 
+  // 开始二维码登录
   const startQRCodeLogin = async () => {
     setLoginStatus(LoginStatus.GENERATING_QR);
     setErrorMessage(null);
     cleanupPolling();
 
     try {
-      // Get QR code key
+      // 获取二维码key
       const keyResponse = await loginByQRCode();
       const key = keyResponse?.data?.unikey;
 
@@ -206,7 +208,7 @@ const Login = () => {
         throw new Error("Failed to get QR code key");
       }
 
-      // Get QR code image
+      // 获取二维码图片
       const qrCodeResponse = await getQRCode(key);
       const qrCodeImg = qrCodeResponse?.data?.qrimg;
 
@@ -217,7 +219,7 @@ const Login = () => {
       setQrImg(qrCodeImg);
       setLoginStatus(LoginStatus.WAITING_SCAN);
 
-      // Set up polling timeout
+      // 设置轮询超时
       const timeout = setTimeout(() => {
         message.error("Login timeout. Please try again.");
         setLoginStatus(LoginStatus.INITIAL);
@@ -225,21 +227,21 @@ const Login = () => {
       }, 300000); // 5 minutes
       pollingTimeoutRef.current = timeout;
 
-      // Set up polling interval
+      // 设置轮询间隔
       const interval = setInterval(async () => {
         try {
           const response = await checkQRCodeState(key);
           switch (response.code) {
-            case 803: // Authorized
+            case 803: // 授权
               await checkLoginStatus(response.cookie!);
               cleanupPolling();
               break;
-            case 800: // QR code expired
+            case 800: // 二维码过期
               message.warning("QR code expired");
               setLoginStatus(LoginStatus.INITIAL);
               cleanupPolling();
               break;
-            case 801: // Waiting for scan
+            case 801: // 等待扫描
               setLoginStatus(LoginStatus.WAITING_SCAN);
               break;
             default:
@@ -260,6 +262,7 @@ const Login = () => {
     }
   };
 
+  // 退出登录
   const handleLogout = async () => {
     try {
       const response = await logout();
@@ -273,11 +276,11 @@ const Login = () => {
         message.error("Logout failed");
       }
     } catch (error) {
-      console.error("Logout error:", error);
-      message.error("Logout failed");
+      message.error("Logout failed",error);
     }
   };
 
+  // 渲染二维码登录部分
   const renderQRCodeSection = () => {
     if (
       loginStatus !== LoginStatus.WAITING_SCAN &&
@@ -319,6 +322,7 @@ const Login = () => {
     );
   };
 
+  // 渲染Captcha登录
   const renderCaptchaLogin = () => {
     return (
       <Modal
@@ -344,7 +348,7 @@ const Login = () => {
               maxLength={4}
               type="password"
               className="flex-grow mr-2"
-              addonAfter={
+              addonAfter={(
                 <Button
                   onClick={handleSendCaptcha}
                   loading={sendCaptchaLoading}
@@ -353,7 +357,7 @@ const Login = () => {
                 >
                   {sendCaptchaText}
                 </Button>
-              }
+              )}
             />
           </div>
           <Button
@@ -369,6 +373,7 @@ const Login = () => {
     );
   };
 
+  // 如果已登录，渲染用户信息
   if (loginStatus === LoginStatus.LOGGED_IN) {
     return (
       <div className="flex flex-col items-center justify-center">
@@ -390,6 +395,7 @@ const Login = () => {
     );
   }
 
+  // 渲染登录按钮
   return (
     <div className="flex flex-col items-center justify-center">
       <div className="p-8 rounded-lg shadow-md w-80">
@@ -398,10 +404,10 @@ const Login = () => {
         {errorMessage && (
           <div className="text-red-500 text-center mb-4">{errorMessage}</div>
         )}
-        <div className="space-y-4">
+        <div className="space-y-4 text-center">
           <button
             onClick={startQRCodeLogin}
-            className="w-full px-4 py-2 rounded bg-gradient-to-r from-blue-500 via-gray-800 to-purple-700 text-white hover:from-blue-600 hover:to-purple-800 disabled:bg-gray-400"
+            className="w-9/12 px-4 py-2 rounded bg-gradient-to-r from-blue-500 via-gray-800 to-purple-700 text-white hover:from-blue-600 hover:to-purple-800 disabled:bg-gray-400"
           >
             {loginStatus === LoginStatus.GENERATING_QR
               ? "正在生成二维码..."
@@ -409,7 +415,7 @@ const Login = () => {
           </button>
           <button
             onClick={() => setLoginStatus(LoginStatus.CAPTCHA_LOGIN)}
-            className="w-full px-4 py-2 rounded bg-gradient-to-r from-green-500 via-gray-800 to-green-700 text-white hover:from-green-600 hover:to-green-800"
+            className="w-9/12 px-4 py-2 rounded bg-gradient-to-r from-green-500 via-gray-800 to-green-700 text-white hover:from-green-600 hover:to-green-800"
           >
             手机号验证码登录
           </button>

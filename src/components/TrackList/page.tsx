@@ -29,7 +29,9 @@ import { SwitcherOutlined, UnorderedListOutlined,VerticalAlignBottomOutlined,Red
 import "./index.scss";
 import DownloadAudio from "@/utils/SongList/downloadAudio"
 
+// 定义显示模式类型
 type DisplayMode = "playlist" | "tracks";
+// 定义获取数据失败的错误类型
 type FetchError = {
   message: string;
   code?: number;
@@ -37,29 +39,44 @@ type FetchError = {
 
 const TrackList: React.FC = () => {
   const dispatch = useAppDispatch();
+  // 从 Redux 中获取订阅的歌单和创建的歌单
   const { subscribedList = [], createdList = [] } = useAppSelector(
     (state) => state.playlist
   );
+  // 从 Redux 中获取用户信息
   const { userInfo } = useAppSelector((state) => state.login);
+  // 从 Redux 中获取歌曲列表
   const { trackLists } = useAppSelector((state) => state.tracks);
 
+  // 定义加载状态
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  // 定义加载歌曲状态
   const [isLoadingTracks, setIsLoadingTracks] = useState<boolean>(false);
+  // 定义加载歌单 ID
   const [loadingPlaylistId, setLoadingPlaylistId] = useState<number | null>(
     null
   );
+  // 定义显示的歌单列表
   const [displayList, setDisplayList] = useState<SimplifiedPlaylist[]>([]);
+  // 定义显示模式
   const [displayMode, setDisplayMode] = useState<DisplayMode>("playlist");
+  // 定义当前歌单 ID
   const [currentPlaylistId, setCurrentPlaylistId] = useState<number | null>(
     null
   );
+  // 定义是否显示订阅的歌单
   const [showSubscribed, setShowSubscribed] = useState<boolean>(true);
+  // 定义错误信息
   const [error, setError] = useState<FetchError | null>(null);
+  // 定义存储的歌曲列表
   const [storedTracks, setStoredTracks] = useState<Track[]>([]);
+  // 定义是否显示歌单名称
   const [ListName, setListName] = useState<boolean>(true);
+  // 定义是否处于返回模式
   const [isBackMode, setIsBackMode] = useState<boolean>(false);  // State to track if in back mode
 
 
+  // 获取用户歌单列表
   const fetchUserMusicList = useCallback(async (userId: string) => {
     try {
       setIsLoading(true);
@@ -96,6 +113,7 @@ const TrackList: React.FC = () => {
     }
   }, []);
 
+  // 分割歌单列表
   const splitPlayList = useCallback(
     (fullList: SimplifiedPlaylist[]) => {
       if (!fullList?.length) {
@@ -117,6 +135,7 @@ const TrackList: React.FC = () => {
     [dispatch]
   );
 
+  // 获取歌曲的 URL
   const getSongsWithUrls = async (songList: any[]) => {
     // 获取所有歌曲的 ID
     const songIds = songList.map((song) => song.id);
@@ -135,7 +154,7 @@ const TrackList: React.FC = () => {
   
       // 如果 URL 存在并且有效（非 null 或 404），使用它，否则使用空字符串
       const songUrl = songData && songData.url 
-      ? `/api/proxy/music?url=${encodeURIComponent(songData.url)}`
+      ? `/api/proxy/music?url=${encodeURIComponent(songData.url)}` 
       : ''; 
   
       return {
@@ -149,6 +168,7 @@ const TrackList: React.FC = () => {
   };
   
 
+  // 处理歌单点击事件
   const handleItemClick = useCallback(
     async (id: number) => {
       if (loadingPlaylistId) return;
@@ -199,6 +219,7 @@ const TrackList: React.FC = () => {
     [dispatch, trackLists, loadingPlaylistId]
   );
 
+  // 处理歌曲点击事件
   const handleSongClick = useCallback(
     async (track: Track) => {
       // Prevent fetching if loading tracks
@@ -249,6 +270,7 @@ const TrackList: React.FC = () => {
     [dispatch, isLoadingTracks, storedTracks] // Add storedTracks as a dependency
   );
 
+  // 组件挂载时获取用户歌单列表
   useEffect(() => {
     const loadUserPlaylists = async () => {
       if (userInfo?.id) {
@@ -262,6 +284,7 @@ const TrackList: React.FC = () => {
     loadUserPlaylists();
   }, [userInfo, fetchUserMusicList, splitPlayList]);
 
+  // 切换歌单列表
   const toggleList = useCallback(() => {
     const newShowSubscribed = !showSubscribed;
     setShowSubscribed(newShowSubscribed);
@@ -270,11 +293,13 @@ const TrackList: React.FC = () => {
     setDisplayList(targetList.length ? targetList : []);
   }, [showSubscribed, subscribedList, createdList]);
 
+  // 切换显示模式
   const toggleDisplayMode = useCallback(() => {
     setDisplayMode((prev) => (prev === "playlist" ? "tracks" : "playlist"));
     setIsBackMode(!isBackMode);  // Toggle back mode when switching modes
   }, [isBackMode]);
 
+  // 获取当前歌单的歌曲列表
   const currentTrackList = useMemo(() => {
     if (displayMode === "tracks" && currentPlaylistId) {
       const trackListItem = trackLists.find(
@@ -285,6 +310,7 @@ const TrackList: React.FC = () => {
     return [];
   }, [displayMode, currentPlaylistId, trackLists]);
 
+  // 添加歌曲到歌单
   const handleAddToPlaylist = useCallback(
     async (track: Track) => {
       try {
@@ -316,6 +342,7 @@ const TrackList: React.FC = () => {
     [dispatch]
   );
 
+  // 刷新歌单列表
   const refreshPlaylists = useCallback(() => {
     if (userInfo?.id) {
       fetchUserMusicList(userInfo.id).then((simplifiedList) => {
@@ -326,6 +353,7 @@ const TrackList: React.FC = () => {
     }
   }, [userInfo, fetchUserMusicList, splitPlayList]);
 
+  // 渲染列表内容
   const listContent = useMemo(() => {
     if (isLoading) {
       return (
