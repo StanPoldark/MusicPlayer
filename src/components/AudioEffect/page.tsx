@@ -62,8 +62,10 @@ const AudioEffects = () => {
 
   // useEffect 钩子，用于初始化音效处理链
   useEffect(() => {
+    let isInitialized = false;
     const initializeEffects = async () => {
-      if (audioContext && webAudioSourceNode && hasUserInteracted) {
+      if (audioContext && webAudioSourceNode && hasUserInteracted && !isInitialized) {
+        isInitialized = true;
         // 确保用户交互后启动 Tone.js 上下文
         await Tone.start();
         Tone.setContext(audioContext);
@@ -84,12 +86,14 @@ const AudioEffects = () => {
     initializeEffects();
 
     return () => {
-      if (effectsChain.reverb) effectsChain.reverb.dispose();
-      if (effectsChain.eq) effectsChain.eq.dispose();
-      if (effectsChain.compressor) effectsChain.compressor.dispose();
-      if (webAudioSourceNode) webAudioSourceNode.disconnect();
+      if (isInitialized) {
+        if (effectsChain.reverb) effectsChain.reverb.dispose();
+        if (effectsChain.eq) effectsChain.eq.dispose();
+        if (effectsChain.compressor) effectsChain.compressor.dispose();
+        if (webAudioSourceNode) webAudioSourceNode.disconnect();
+      }
     };
-  }, [audioContext, webAudioSourceNode, effectsChain, hasUserInteracted]);
+  }, [audioContext, webAudioSourceNode, hasUserInteracted]);
 
   // 定义 applyPreset 函数，用于应用音效预设
   const applyPreset = (presetName: keyof typeof presets) => {
