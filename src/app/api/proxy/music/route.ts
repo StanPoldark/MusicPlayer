@@ -30,9 +30,11 @@ export async function GET(req: NextRequest) {
       headers: {
         'Content-Type': contentType || 'audio/mp3',
         'Access-Control-Allow-Origin': '*', // CORS header to allow frontend access
-        'Cache-Control': 'no-cache' // Optional, to prevent caching on the client side
+        'Content-Length': response.headers.get('Content-Length'), // Ensure file size is known for larger files
+        'Accept-Ranges': 'bytes', // This allows browsers to download in chunks
       }
     });
+    
 
   } catch (error) {
     console.error('Error during audio fetching:', error);

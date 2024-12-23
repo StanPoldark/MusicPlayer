@@ -10,6 +10,7 @@ const AudioEffects = () => {
     reverb?: Tone.Reverb;
     eq?: Tone.EQ3;
     compressor?: Tone.Compressor;
+    gain?: Tone.Gain;
   }>({});
 
   // 从 AudioContext 中获取 audioContext、audioRef 和 webAudioSourceNode
@@ -24,35 +25,28 @@ const AudioEffects = () => {
   // 定义音效预设
   const presets = {
     normal: {
-      reverb: 0,
+      reverb: 0.1,  // 轻微的混响
       bass: 0,
       mid: 0,
       treble: 0,
       compression: 0,
     },
-    concert: {
-      reverb: 0.3,
+    ambient: {
+      reverb: 0.8,  // 强烈的混响
       bass: 3,
       mid: 0,
       treble: 2,
-      compression: -10,
+      compression: -30,
     },
     studio: {
-      reverb: 0.1,
+      reverb: 0.1,  // 轻微的混响
       bass: 2,
       mid: 1,
       treble: 1,
       compression: -15,
     },
-    ambient: {
-      reverb: 0.8, // 强烈的混响，营造深远空间感
-      bass: 2,
-      mid: 0,
-      treble: 2,
-      compression: -30, // 更大的动态范围
-    },
     hall: {
-      reverb: 0.7, // 大厅混响效果
+      reverb: 0.7,  // 大厅混响效果
       bass: 1,
       mid: 1,
       treble: 0,
@@ -76,10 +70,10 @@ const AudioEffects = () => {
         const compressor = new Tone.Compressor().connect(eq);
 
         // 使用 Tone.js 的 Gain 节点桥接
-        const gainNode = new Tone.Gain();
+        const gainNode = new Tone.Gain(1);
         webAudioSourceNode.connect(gainNode.input); // 将原生节点连接到 Tone.js 节点
         gainNode.connect(compressor); // 再接入 Tone.js 音效链
-        setEffectsChain({ reverb, eq, compressor });
+        setEffectsChain({ reverb, eq, compressor, gain: gainNode });
       }
     };
 
@@ -90,6 +84,7 @@ const AudioEffects = () => {
         if (effectsChain.reverb) effectsChain.reverb.dispose();
         if (effectsChain.eq) effectsChain.eq.dispose();
         if (effectsChain.compressor) effectsChain.compressor.dispose();
+        if (effectsChain.gain) effectsChain.gain.dispose();
         if (webAudioSourceNode) webAudioSourceNode.disconnect();
       }
     };
@@ -117,6 +112,15 @@ const AudioEffects = () => {
     if (effectsChain.compressor) {
       effectsChain.compressor.threshold.value = validCompression;
     }
+
+    // Apply a gain change to make the effect more noticeable (you can modify this value)
+    if (effectsChain.gain) {
+      effectsChain.gain.gain.value = presetName === "ambient" ? 2 : 1; // Increase gain for ambient to make it more noticeable
+    }
+
+    // Debug logs to check if changes take place
+    console.log(`Preset applied: ${presetName}`, preset);
+
     setSelectedPreset(presetName);
   };
 

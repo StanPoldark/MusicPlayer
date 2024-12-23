@@ -134,7 +134,6 @@ const MusicPlayer: React.FC = () => {
   // Progress and playback tracking
   useEffect(() => {
     if (!audioRef.current || !hasUserInteracted) return;
-
     const handleTimeUpdate = () => {
       if (!isDragging) {
         setProgress(audioRef.current?.currentTime || 0);
@@ -168,6 +167,7 @@ const MusicPlayer: React.FC = () => {
   }, [hasUserInteracted, isDragging, dispatch, repeatMode]);
 
   const handleVolumeChange = useCallback(
+
     (newVolume: number) => {
       const safeVolume = Math.min(Math.max(newVolume, 0), 1);
       audioRef.current.volume = safeVolume;

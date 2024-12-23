@@ -11,8 +11,6 @@ const DynamicBackground: React.FC = () => {
     if (typeof window !== 'undefined') {
       const storedBackgroundUrl = localStorage.getItem('BACKGROUND');
       setBackgroundUrl(storedBackgroundUrl || backgroundUrlFromRedux);
-      console.log(storedBackgroundUrl);
-      
     }
   }, [backgroundUrlFromRedux]); // Re-run if the redux state changes
 
