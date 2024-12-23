@@ -64,3 +64,4 @@ export const FINISHDRAW = 'FinishDraw';
  * 初始化相关操作
  */
 export const FINISHINIT = 'FinishInit';
+export const BACKGROUND = 'BACKGROUND';

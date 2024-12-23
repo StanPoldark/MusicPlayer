@@ -12,14 +12,15 @@ import mediaQuery from "@/utils/mediaQuery";
 import BottomNavigation from "@/components/BottomNavigation/page";
 import SnowfallBackground from "@/components/Snow/page";
 import AudioEffects from "@/components/AudioEffect/page";
-import Live2DViewer from "@/components/Live2DViewer/page"
+import Live2DViewer from "@/components/Live2DViewer/page";
+import ChangeBackground from "@/components/ChangeBackground/page";
 
 import {
   UserOutlined,
   SearchOutlined,
   PlayCircleOutlined,
   UnorderedListOutlined,
-  ControlOutlined 
+  ControlOutlined,
 } from "@ant-design/icons";
 import "./index.scss";
 
@@ -55,7 +56,7 @@ export default function HomePage() {
     },
     {
       key: "audioeffect",
-      icon: <ControlOutlined  />,
+      icon: <ControlOutlined />,
       label: "Audio Effects",
       component: <AudioEffects />,
     },
@@ -70,7 +71,7 @@ export default function HomePage() {
           <TrackList />
         </div>
       ),
-      style: { height: "100%", Color: "white" },
+      style: { height: "100%", color: "white" },
     },
     {
       key: "playlist",
@@ -80,7 +81,7 @@ export default function HomePage() {
           <PlayList />
         </div>
       ),
-      style: { height: "100%", Color: "white" },
+      style: { height: "100%", color: "white" },
     },
     {
       key: "audioeffects",
@@ -90,8 +91,22 @@ export default function HomePage() {
           <AudioEffects />
         </div>
       ),
-      style: { height: "100%", Color: "white" },
+      style: { height: "100%", color: "white" },
     },
+    ...(!isMobile
+      ? [
+          {
+            key: "changebackground",
+            label: "Change Background",
+            children: (
+              <div className="box" style={{ height: "100%", width: "100%" }}>
+                <ChangeBackground />
+              </div>
+            ),
+            style: { height: "100%", color: "white" },
+          },
+        ]
+      : []),
   ];
 
   // Close the drawer
@@ -107,7 +122,7 @@ export default function HomePage() {
   return (
     <AudioProvider>
       <SnowfallBackground />
-       {!isMobile && <Live2DViewer />}
+      {!isMobile && <Live2DViewer />}
       <div
         style={{
           margin: "20px",

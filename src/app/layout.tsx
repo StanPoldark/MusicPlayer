@@ -8,6 +8,7 @@ import store from '@/redux/index';
 import 'antd/dist/reset.css';
 import mediaQuery from "@/utils/mediaQuery"
 import Loading from "@/components/Loading/page";
+import DynamicBackground from '@/components/DynamicBackground/page';
 import { useState, useEffect } from "react";
 
 // Functional component layout
@@ -24,7 +25,8 @@ const Layout = ({ children }: any) => {
     <html>
       <body>
       <Loading initState={initState} />
-      <TransitionGroup className='main-wrapper animate__animated animate__fadeIn'  id="bg">
+      <DynamicBackground />
+      <TransitionGroup className='main-wrapper animate__animated animate__fadeIn'>
         <CSSTransition
           timeout={3000}
           classNames="page-transition" // Using classNames for transitions
@@ -56,6 +58,7 @@ const Layout = ({ children }: any) => {
           </div>
         </CSSTransition>
       </TransitionGroup>
+      
       </body>
     </html>
     </Provider>
