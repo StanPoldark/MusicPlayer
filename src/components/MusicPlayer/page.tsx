@@ -112,8 +112,6 @@ const MusicPlayer: React.FC = () => {
     
     // Set the audio source directly using currentTrack.url
     audioRef.current.src = currentTrack.url;
-    // Set volume
-    audioRef.current.volume = volume;
     setAudio(audioRef.current);
 
     // Metadata and duration detection
@@ -130,7 +128,7 @@ const MusicPlayer: React.FC = () => {
     return () => {
       audioRef.current?.removeEventListener("loadedmetadata", metadataHandler);
     };
-  }, [currentTrack?.url, volume, hasUserInteracted, setAudio]);
+  }, [currentTrack?.url, hasUserInteracted, setAudio]);
 
 
   // Progress and playback tracking
@@ -172,6 +170,7 @@ const MusicPlayer: React.FC = () => {
   const handleVolumeChange = useCallback(
     (newVolume: number) => {
       const safeVolume = Math.min(Math.max(newVolume, 0), 1);
+      audioRef.current.volume = safeVolume;
       dispatch(setVolume(safeVolume));
     },
     [dispatch]

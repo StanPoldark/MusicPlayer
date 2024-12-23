@@ -7,16 +7,23 @@ import { Provider } from 'react-redux';
 import store from '@/redux/index';
 import 'antd/dist/reset.css';
 import mediaQuery from "@/utils/mediaQuery"
+import Loading from "@/components/Loading/page";
+import { useState, useEffect } from "react";
 
 // Functional component layout
 const Layout = ({ children }: any) => {
   const isMobile = mediaQuery("(max-width: 768px)");
+  const [initState, setInitState] = useState(false);
   
+  useEffect(() => {
+    setTimeout(() => setInitState(true), 2000); // Simulating data load
+  }, []);
+
   return (
     <Provider store={store}>
-
     <html>
       <body>
+      <Loading initState={initState} />
       <TransitionGroup className='main-wrapper animate__animated animate__fadeIn'  id="bg">
         <CSSTransition
           timeout={3000}

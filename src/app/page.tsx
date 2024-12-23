@@ -107,7 +107,7 @@ export default function HomePage() {
   return (
     <AudioProvider>
       <SnowfallBackground />
-      <Live2DViewer />
+       {!isMobile && <Live2DViewer />}
       <div
         style={{
           margin: "20px",

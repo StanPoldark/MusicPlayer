@@ -2,17 +2,17 @@
 
 import React, { useState, useEffect } from "react";
 import "./index.scss"; // 样式文件
-import nprogress from 'nprogress';
+import nprogress from "nprogress";
 
-import LoadingProgress from "./Progress/page"; 
+import LoadingProgress from "./Progress/page";
 
 interface LoadingProps {
-  initState: boolean; 
+  initState: boolean;
 }
 
 const Loading: React.FC<LoadingProps> = ({ initState }) => {
-  const [progress, setProgress] = useState<number | null>(0); 
-  const [maskClassName, setMaskClassName] = useState<string>("loading_mask"); 
+  const [progress, setProgress] = useState<number | null>(0);
+  const [maskClassName, setMaskClassName] = useState<string>("loading_mask");
   const [removeMask, setRemoveMask] = useState<boolean>(false);
 
   useEffect(() => {
@@ -40,10 +40,10 @@ const Loading: React.FC<LoadingProps> = ({ initState }) => {
         setProgress(1);
 
         setMaskClassName("loading_mask done");
-        await new Promise((resolve) => setTimeout(resolve, 1600)); 
+        await new Promise((resolve) => setTimeout(resolve, 1600));
 
         setMaskClassName("loading_mask hidden");
-        await new Promise((resolve) => setTimeout(resolve, 1000)); 
+        await new Promise((resolve) => setTimeout(resolve, 1000));
 
         setRemoveMask(true);
       };
@@ -54,7 +54,7 @@ const Loading: React.FC<LoadingProps> = ({ initState }) => {
 
   return removeMask ? null : (
     <div className={maskClassName}>
-      <div className="title">Welcome To Stan&aposs Music Website</div>
+      <div className="title">Welcome To Stan&#39;s Music Website</div>
       <LoadingProgress value={progress} />
     </div>
   );
