@@ -175,9 +175,10 @@ const MusicPlayer: React.FC = () => {
     },
     [dispatch]
   );
-
+  
   const handleProgressChange = useCallback((newProgress: number) => {
     if (audioRef.current) {
+
       setIsDragging(true);
       setProgress(newProgress);
     }
@@ -188,6 +189,7 @@ const MusicPlayer: React.FC = () => {
       audioRef.current.currentTime = newValue;
     }
     setIsDragging(false);
+    return true
   }, []);
 
   if (!currentTrack) return null;
