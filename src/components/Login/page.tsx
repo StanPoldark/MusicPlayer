@@ -410,7 +410,7 @@ const Login = () => {
         <div className="space-y-4 text-center">
           <button
             onClick={startQRCodeLogin}
-            className="button"  style={{width: '20rem',marginBottom: '0',padding:'20px'}}
+            className="button"  style={{width: '15rem',marginBottom: '0',padding:'20px',height:'2rem'}}
           >
             {loginStatus === LoginStatus.GENERATING_QR
               ? <span>正在生成二维码...</span>
@@ -418,7 +418,7 @@ const Login = () => {
           </button>
           <button
             onClick={() => setLoginStatus(LoginStatus.CAPTCHA_LOGIN)}
-            className="button"  style={{width: '20rem', marginBottom: '20px',padding:'20px'}}
+            className="button"  style={{width: '15rem', marginBottom: '20px',padding:'20px',height:'2rem'}}
           >
             <span>手机号验证码登录</span>
             
