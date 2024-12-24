@@ -56,13 +56,6 @@ const Login = () => {
   const pollingIntervalRef = useRef<NodeJS.Timer | null>(null);
   const pollingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // 组件挂载时检查登录状态
-  useEffect(() => {
-    const storedCookie = localStorage.getItem("cookie");
-    if (storedCookie) {
-      checkLoginStatus(storedCookie);
-    }
-  }, []);
 
   // 清理轮询函数
   const cleanupPolling = useCallback(() => {
@@ -109,6 +102,14 @@ const Login = () => {
     }
   };
 
+    // 组件挂载时检查登录状态
+    useEffect(() => {
+      const storedCookie = localStorage.getItem("cookie");
+      if (storedCookie) {
+        checkLoginStatus(storedCookie);
+      }
+    }, [checkLoginStatus]); 
+  
   // Captcha登录方法
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPhone(e.target.value.replace(/[^\d]/g, ""));

@@ -37,15 +37,15 @@ const MusicPlayer: React.FC = () => {
   const { currentTrack, isPlaying, volume, repeatMode,hasUserInteracted } = useAppSelector(
     (state) => state.musicPlayer
   );
-  const { setAudioContext,setAudio,setWebAudioSourceNode } = useAudio();
+  const { setAudio} = useAudio();
   const audioRef = useRef<HTMLAudioElement>(null);
   const [audioContext, setLocalAudioContext] = useState<AudioContext | null>(null);
-  const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [isVolumeVisible, setIsVolumeVisible] = useState(false);
   const volumeContainerRef = useRef<HTMLDivElement>(null);
+  const [node,setNode] = useState<MediaElementAudioSourceNode | null>(null);
   // Memoized time formatting function
   const formatTime = useCallback((time: number) => {
     const minutes = Math.floor(time / 60);
@@ -79,18 +79,8 @@ const MusicPlayer: React.FC = () => {
       // Initialize AudioContext
       const context = new (window.AudioContext || (window as any).webkitAudioContext)();
       setLocalAudioContext(context);
-
-      const analyser = context.createAnalyser();
-      analyser.fftSize = 256;
-      analyser.smoothingTimeConstant = 0.8;
-      setAnalyser(analyser);
       const node = context.createMediaElementSource(audioRef.current);
-      setWebAudioSourceNode(node);
-      setAudioContext(audioContext)
-      node.connect(analyser);
-      analyser.connect(context.destination);
-
-      setAudioContext(context);
+      setNode(node);
     } else if (audioContext.state === "suspended") {
       // Resume suspended AudioContext
       audioContext.resume().catch(console.error);
@@ -198,7 +188,8 @@ const MusicPlayer: React.FC = () => {
     <div className="w-[80%] rounded-lg mx-auto">
         <AudioSpectrum
         audioContext={audioContext}
-        analyser={analyser}
+        webAudioSourceNode={node}
+        hasUserInteracted={hasUserInteracted}
       />
       <div>
         <audio ref={audioRef} id="audio-element" />

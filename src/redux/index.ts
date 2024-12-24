@@ -5,13 +5,15 @@ import loginSlice from './modules/login/reducer';
 import playlistSlice from './modules/playList/reducer'
 import tracksSlice from './modules/SongList/reducer';
 import bgSlice from './modules/bg/reducer'
+import presetReducer from "./modules/audioEffects/reducer";
 
 const rootReducer = {
   musicPlayer: musicPlayerReducer,
   login:loginSlice,
   playlist:playlistSlice,
   tracks: tracksSlice,
-  bg:bgSlice
+  bg:bgSlice,
+  ae:presetReducer
 };
 
 const store = configureStore({

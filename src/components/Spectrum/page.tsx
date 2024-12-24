@@ -1,40 +1,158 @@
-"use client";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import * as Tone from "tone";
+import { useSelector } from "react-redux";
 import { throttle } from "lodash";
-interface AudioSpectrumProps {
-  audioContext: AudioContext | null;
-  analyser: AnalyserNode | null;
 
+interface AudioVisualizerProps {
+  audioContext: AudioContext | null;
+  webAudioSourceNode: MediaElementAudioSourceNode | null;
+  hasUserInteracted: boolean;
 }
 
-const AudioSpectrum: React.FC<AudioSpectrumProps> = ({ audioContext, analyser }) => {
-  // 创建一个canvas引用
+const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
+  audioContext,
+  webAudioSourceNode,
+  hasUserInteracted,
+}) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  // 创建一个动画帧ID引用
   const animationFrameId = useRef<number | null>(null);
+  const isInitializedRef = useRef(false);
+  const analyserRef = useRef<AnalyserNode | null>(null);
 
-  // 使用lodash的throttle函数，限制drawSpectrum函数的调用频率
+  const selectedPreset = useSelector((state: any) => state.ae.selectedPreset); // 从 Redux 中获取选中的预设
+
+  const [effectsChain, setEffectsChain] = useState<{
+    reverb?: Tone.Reverb;
+    eq?: Tone.EQ3;
+    compressor?: Tone.Compressor;
+    gain?: Tone.Gain;
+  }>({});
+
+  // Audio effect presets
+  const presets = {
+    n: {
+      reverb: 0.1,
+      bass: 0,
+      mid: 0,
+      treble: 0,
+      compression: 0,
+    },
+    a: {
+      reverb: 0.8,
+      bass: 3,
+      mid: 0,
+      treble: 2,
+      compression: -30,
+    },
+    s: {
+      reverb: 0.1,
+      bass: 2,
+      mid: 1,
+      treble: 1,
+      compression: -15,
+    },
+    h: {
+      reverb: 0.7,
+      bass: 1,
+      mid: 1,
+      treble: 0,
+      compression: -20,
+    },
+  };
+
+  // Initialize audio effects chain
+  useEffect(() => {
+    const initializeEffects = async () => {
+      if (
+        audioContext &&
+        webAudioSourceNode &&
+        hasUserInteracted &&
+        !isInitializedRef.current
+      ) {
+        isInitializedRef.current = true;
+
+        try {
+          // Initialize Tone.js effects
+          await Tone.start();
+          Tone.setContext(audioContext);
+          const reverb = new Tone.Reverb({ decay: 3 }).toDestination();
+          const eq = new Tone.EQ3().connect(reverb);
+          const compressor = new Tone.Compressor().connect(eq);
+          const gainNode = new Tone.Gain(1);
+          
+          // Create and connect analyzer node
+          analyserRef.current = audioContext.createAnalyser();
+          analyserRef.current.fftSize = 256;
+          
+          // Connect the audio chain
+          webAudioSourceNode.connect(gainNode.input);
+          gainNode.connect(compressor);
+          gainNode.connect(analyserRef.current);
+          
+          setEffectsChain({ reverb, eq, compressor, gain: gainNode });
+        } catch (error) {
+          console.error("Error initializing audio effects:", error);
+          isInitializedRef.current = false;
+        }
+      }
+    };
+
+    initializeEffects();
+
+    return () => {
+      if (isInitializedRef.current) {
+        Object.values(effectsChain).forEach(effect => effect?.dispose());
+        if (webAudioSourceNode) webAudioSourceNode.disconnect();
+        isInitializedRef.current = false;
+      }
+      if (animationFrameId.current) {
+        cancelAnimationFrame(animationFrameId.current);
+      }
+    };
+  }, [audioContext, webAudioSourceNode, hasUserInteracted]);
+
+  // Apply audio effect preset based on the selected preset
+  useEffect(() => {
+    const preset = presets[selectedPreset];
+    
+    if (effectsChain.reverb) {
+      effectsChain.reverb.set({ decay: Math.max(preset.reverb, 0.001) });
+    }
+
+    if (effectsChain.eq) {
+      effectsChain.eq.low.value = preset.bass;
+      effectsChain.eq.mid.value = preset.mid;
+      effectsChain.eq.high.value = preset.treble;
+    }
+
+    if (effectsChain.compressor) {
+      effectsChain.compressor.threshold.value = Math.max(
+        Math.min(preset.compression, 0),
+        -100
+      );
+    }
+
+    if (effectsChain.gain) {
+      effectsChain.gain.gain.value = selectedPreset === "a" ? 2 : 1;
+    }
+  }, [selectedPreset]);
+
+  // Spectrum visualization function (same as before)
   const drawSpectrum = throttle(
     (canvas: HTMLCanvasElement, arr: Uint8Array) => {
-      // 获取canvas的2D上下文
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
 
-      // 获取canvas的宽度和高度
       const { width, height } = canvas;
-      // 清空canvas
       ctx.clearRect(0, 0, width, height);
 
-      // 计算每个频谱条的宽度
       const barWidth = width / arr.length;
       let x = 0;
-      // 遍历频谱数据
+      
       arr.forEach((value) => {
-        // 计算每个频谱条的高度
         const barHeight = (value / 255) * height;
-        // 设置频谱条的颜色
-        ctx.fillStyle = `rgba(52, 152, 219, ${value / 255})`;
-        // 绘制频谱条
+        const hue = (value / 255) * 220; // Blue spectrum
+        ctx.fillStyle = `hsla(${hue}, 70%, 60%, ${value / 255})`;
         ctx.fillRect(x, height - barHeight, barWidth, barHeight);
         x += barWidth + 1;
       });
@@ -42,52 +160,41 @@ const AudioSpectrum: React.FC<AudioSpectrumProps> = ({ audioContext, analyser })
     16
   );
 
-  // 绘制静态频谱
-  const drawStaticSpectrum = (canvas: HTMLCanvasElement, alt: number) => {
-    const canvasCtx = canvas.getContext("2d");
-    const w = canvas.width;
-    const h = canvas.height;
-    const barWidth = (w / alt) * 0.9;
+  const drawStaticSpectrum = (canvas: HTMLCanvasElement) => {
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const { width, height } = canvas;
+    ctx.clearRect(0, 0, width, height);
+
+    const bars = 64;
+    const barWidth = (width / bars) * 0.9;
     let x = 0;
 
-    if (canvasCtx) {
-      canvasCtx.clearRect(0, 0, w, h);
-
-      for (let i = 0; i < alt; i++) {
-        const barHeight = 30;
-        canvasCtx.fillStyle = "#bce5ef";
-        canvasCtx.fillRect(x, h / 2 - barHeight / 8, barWidth, barHeight / 4);
-        x += barWidth + 3;
-      }
-    } else {
-      throw Error("Canvas context is null");
+    for (let i = 0; i < bars; i++) {
+      const barHeight = 30;
+      ctx.fillStyle = "#bce5ef";
+      ctx.fillRect(x, height / 2 - barHeight / 8, barWidth, barHeight / 4);
+      x += barWidth + 3;
     }
   };
 
-
-  // 可视化频谱
-  const visualize = () => {
-    if (!canvasRef.current || !analyser) return;
-
-    const canvas = canvasRef.current;
-    const bufferLength = analyser.frequencyBinCount;
-    const dataArray = new Uint8Array(bufferLength);
-
-    const draw = () => {
-      animationFrameId.current = requestAnimationFrame(draw);
-      analyser.getByteFrequencyData(dataArray);
-      drawSpectrum(canvas, dataArray);
-    };
-    draw();
-  };
-
-  // 组件挂载和卸载时执行的操作
+  // Visualization loop
   useEffect(() => {
-    
-    if (audioContext && analyser) {
-      visualize();
+    if (!canvasRef.current) return;
+
+    if (analyserRef.current) {
+      const bufferLength = analyserRef.current.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+
+      const draw = () => {
+        animationFrameId.current = requestAnimationFrame(draw);
+        analyserRef.current!.getByteFrequencyData(dataArray);
+        drawSpectrum(canvasRef.current!, dataArray);
+      };
+      draw();
     } else {
-      if (canvasRef.current) drawStaticSpectrum(canvasRef.current, 128); // Show static spectrum
+      drawStaticSpectrum(canvasRef.current);
     }
 
     return () => {
@@ -95,13 +202,18 @@ const AudioSpectrum: React.FC<AudioSpectrumProps> = ({ audioContext, analyser })
         cancelAnimationFrame(animationFrameId.current);
       }
     };
-  }, [analyser, audioContext]);
+  }, [analyserRef.current]);
 
   return (
-    <div className="relative w-full">
-      <canvas ref={canvasRef} className="w-full h-8 rounded-lg bg-black/5" />
+    <div className="flex flex-col items-center gap-4">
+      <div className="relative w-full">
+        <canvas 
+          ref={canvasRef} 
+          className="w-full h-8 rounded-lg bg-black/5"
+        />
+      </div>
     </div>
   );
 };
 
-export default AudioSpectrum;
+export default AudioVisualizer;
