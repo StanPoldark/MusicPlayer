@@ -108,7 +108,7 @@ const Login = () => {
       if (storedCookie) {
         checkLoginStatus(storedCookie);
       }
-    }, []); 
+    }, [checkLoginStatus]); 
   
   // Captcha登录方法
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
