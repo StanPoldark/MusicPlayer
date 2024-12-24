@@ -16,7 +16,7 @@ const AudioEffects = () => {
   return (
     <div className="flex flex-col items-center my-4">
       <span>Audio Effects</span>
-      <div className="flex  gap-4 px-4">
+      <div className="flex  px-8">
         {Object.keys(presets).map((preset) => (
           <div key={preset} className="shrink-0">
             <button

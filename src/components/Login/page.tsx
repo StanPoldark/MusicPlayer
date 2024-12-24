@@ -108,7 +108,7 @@ const Login = () => {
       if (storedCookie) {
         checkLoginStatus(storedCookie);
       }
-    }, [checkLoginStatus]); 
+    }, []); 
   
   // Captcha登录方法
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -272,9 +272,9 @@ const Login = () => {
 
       if (response.code == 200) {
         message.success("Logged out successfully");
+        localStorage.removeItem("cookie");
         dispatch(resetLoginState());
         setLoginStatus(LoginStatus.INITIAL);
-        localStorage.removeItem("cookie");
       } else {
         message.error("Logout failed");
       }
