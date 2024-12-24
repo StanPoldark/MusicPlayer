@@ -11,10 +11,9 @@ import MusicSearch from "@/components/Search/page";
 import mediaQuery from "@/utils/mediaQuery";
 import BottomNavigation from "@/components/BottomNavigation/page";
 import SnowfallBackground from "@/components/Snow/page";
-import AudioEffects from "@/components/AudioEffect/page";
-import Live2DViewer from "@/components/Live2DViewer/page";
-import ChangeBackground from "@/components/ChangeBackground/page";
 
+import Live2DViewer from "@/components/Live2DViewer/page";
+import Utils from "@/components/Utils/page";
 import {
   UserOutlined,
   SearchOutlined,
@@ -57,8 +56,8 @@ export default function HomePage() {
     {
       key: "audioeffect",
       icon: <ControlOutlined />,
-      label: "Audio Effects",
-      component: <AudioEffects />,
+      label: "Function",
+      component: <Utils />,
     },
   ];
 
@@ -83,24 +82,14 @@ export default function HomePage() {
       ),
       style: { height: "100%", color: "white" },
     },
-    {
-      key: "audioeffects",
-      label: "Audio Effects",
-      children: (
-        <div className="box" style={{ height: "100%", width: "100%" }}>
-          <AudioEffects />
-        </div>
-      ),
-      style: { height: "100%", color: "white" },
-    },
     ...(!isMobile
       ? [
           {
-            key: "changebackground",
-            label: "Change Background",
+            key: "utils",
+            label: "Utils",
             children: (
               <div className="box" style={{ height: "100%", width: "100%" }}>
-                <ChangeBackground />
+                <Utils />
               </div>
             ),
             style: { height: "100%", color: "white" },

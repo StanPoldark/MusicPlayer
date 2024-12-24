@@ -20,6 +20,8 @@ import {
 import { useAppSelector, useAppDispatch } from "@/hooks/hooks";
 import { UserInfo } from "@/redux/modules/types";
 import Image from "next/image";
+import "../AudioEffect/index.scss"
+
 enum LoginStatus {
   INITIAL,
   GENERATING_QR,
@@ -398,7 +400,7 @@ const Login = () => {
   // 渲染登录按钮
   return (
     <div className="flex flex-col items-center justify-center">
-      <div className="p-8 rounded-lg shadow-md w-80">
+      <div className="">
         {renderQRCodeSection()}
         {renderCaptchaLogin()}
         {errorMessage && (
@@ -407,17 +409,18 @@ const Login = () => {
         <div className="space-y-4 text-center">
           <button
             onClick={startQRCodeLogin}
-            className="w-9/12 px-4 py-2 rounded bg-gradient-to-r from-blue-500 via-gray-800 to-purple-700 text-white hover:from-blue-600 hover:to-purple-800 disabled:bg-gray-400"
+            className="button"  style={{width: '20rem',marginBottom: '0',padding:'20px'}}
           >
             {loginStatus === LoginStatus.GENERATING_QR
-              ? "正在生成二维码..."
-              : "扫码登录"}
+              ? <span>正在生成二维码...</span>
+              : <span>扫码登录</span>}
           </button>
           <button
             onClick={() => setLoginStatus(LoginStatus.CAPTCHA_LOGIN)}
-            className="w-9/12 px-4 py-2 rounded bg-gradient-to-r from-green-500 via-gray-800 to-green-700 text-white hover:from-green-600 hover:to-green-800"
+            className="button"  style={{width: '20rem', marginBottom: '20px',padding:'20px'}}
           >
-            手机号验证码登录
+            <span>手机号验证码登录</span>
+            
           </button>
         </div>
       </div>

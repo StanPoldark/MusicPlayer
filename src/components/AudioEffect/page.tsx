@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import * as Tone from "tone";
 import { useAudio } from "@/contexts/AudioContext";
 import { useAppSelector } from "@/hooks/hooks";
+import "./index.scss";
 
 // 定义 AudioEffects 组件
 const AudioEffects = () => {
@@ -16,6 +17,7 @@ const AudioEffects = () => {
   // 从 AudioContext 中获取 audioContext、audioRef 和 webAudioSourceNode
   const { audioContext, webAudioSourceNode } = useAudio();
 
+  const isInitializedRef = useRef(false);
   // 定义 selectedPreset 状态，用于存储当前选中的音效预设
   const [selectedPreset, setSelectedPreset] = useState("normal");
 
@@ -24,29 +26,29 @@ const AudioEffects = () => {
 
   // 定义音效预设
   const presets = {
-    normal: {
-      reverb: 0.1,  // 轻微的混响
+    n: {
+      reverb: 0.1, // 轻微的混响
       bass: 0,
       mid: 0,
       treble: 0,
       compression: 0,
     },
-    ambient: {
-      reverb: 0.8,  // 强烈的混响
+    a: {
+      reverb: 0.8, // 强烈的混响
       bass: 3,
       mid: 0,
       treble: 2,
       compression: -30,
     },
-    studio: {
-      reverb: 0.1,  // 轻微的混响
+    s: {
+      reverb: 0.1, // 轻微的混响
       bass: 2,
       mid: 1,
       treble: 1,
       compression: -15,
     },
-    hall: {
-      reverb: 0.7,  // 大厅混响效果
+    h: {
+      reverb: 0.7, // 大厅混响效果
       bass: 1,
       mid: 1,
       treble: 0,
@@ -55,40 +57,60 @@ const AudioEffects = () => {
   };
 
   // useEffect 钩子，用于初始化音效处理链
+
   useEffect(() => {
-    let isInitialized = false;
     const initializeEffects = async () => {
-      if (audioContext && webAudioSourceNode && hasUserInteracted && !isInitialized) {
-        isInitialized = true;
-        // 确保用户交互后启动 Tone.js 上下文
-        await Tone.start();
-        Tone.setContext(audioContext);
+      // 检查是否已初始化和必要条件
+      if (
+        audioContext &&
+        webAudioSourceNode &&
+        hasUserInteracted &&
+        !isInitializedRef.current
+      ) {
+        isInitializedRef.current = true;
 
-        // 创建 Tone.js 的音效处理链
-        const reverb = new Tone.Reverb({ decay: 3 }).toDestination();
-        const eq = new Tone.EQ3().connect(reverb);
-        const compressor = new Tone.Compressor().connect(eq);
+        try {
+          await Tone.start();
+          Tone.setContext(audioContext);
 
-        // 使用 Tone.js 的 Gain 节点桥接
-        const gainNode = new Tone.Gain(1);
-        webAudioSourceNode.connect(gainNode.input); // 将原生节点连接到 Tone.js 节点
-        gainNode.connect(compressor); // 再接入 Tone.js 音效链
-        setEffectsChain({ reverb, eq, compressor, gain: gainNode });
+          const reverb = new Tone.Reverb({ decay: 3 }).toDestination();
+          const eq = new Tone.EQ3().connect(reverb);
+          const compressor = new Tone.Compressor().connect(eq);
+          const gainNode = new Tone.Gain(1);
+
+          webAudioSourceNode.connect(gainNode.input);
+          gainNode.connect(compressor);
+
+          setEffectsChain({ reverb, eq, compressor, gain: gainNode });
+
+          // 初始化完成后打印一次状态
+          console.log("Audio Chain Initialized:", {
+            gainConnected: gainNode.numberOfOutputs > 0,
+            compressorConnected: compressor.numberOfOutputs > 0,
+            eqConnected: eq.numberOfOutputs > 0,
+            reverbConnected: reverb.numberOfOutputs > 0,
+          });
+        } catch (error) {
+          console.error("Error initializing audio effects:", error);
+          isInitializedRef.current = false; // 如果初始化失败，重置标志
+        }
       }
     };
 
     initializeEffects();
 
+    // 清理函数
     return () => {
-      if (isInitialized) {
+      if (isInitializedRef.current) {
         if (effectsChain.reverb) effectsChain.reverb.dispose();
         if (effectsChain.eq) effectsChain.eq.dispose();
         if (effectsChain.compressor) effectsChain.compressor.dispose();
         if (effectsChain.gain) effectsChain.gain.dispose();
         if (webAudioSourceNode) webAudioSourceNode.disconnect();
+        isInitializedRef.current = false;
       }
     };
-  }, [audioContext, webAudioSourceNode, hasUserInteracted]);
+  }, [audioContext, webAudioSourceNode, hasUserInteracted]); // 移除 effectsChain
 
   // 定义 applyPreset 函数，用于应用音效预设
   const applyPreset = (presetName: keyof typeof presets) => {
@@ -115,29 +137,25 @@ const AudioEffects = () => {
 
     // Apply a gain change to make the effect more noticeable (you can modify this value)
     if (effectsChain.gain) {
-      effectsChain.gain.gain.value = presetName === "ambient" ? 2 : 1; // Increase gain for ambient to make it more noticeable
+      effectsChain.gain.gain.value = presetName === "a" ? 2 : 1; // Increase gain for ambient to make it more noticeable
     }
-
-    // Debug logs to check if changes take place
-    console.log(`Preset applied: ${presetName}`, preset);
-
     setSelectedPreset(presetName);
   };
 
   // 返回组件 JSX
   return (
     <div className="flex flex-col items-center my-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 w-full max-w-lg">
+      <span>Audio Effects</span>
+      <div className="flex  gap-4 px-4">
         {Object.keys(presets).map((preset) => (
-          <button
-            key={preset}
-            className={`w-full px-4 py-2 text-sm md:text-base rounded transition-all duration-300 ${
-              selectedPreset === preset ? "bg-blue-500 text-white" : "bg-gray-500 text-gray-200"
-            } hover:bg-blue-600 hover:scale-105`}
-            onClick={() => applyPreset(preset as keyof typeof presets)}
-          >
-            {preset.charAt(0).toUpperCase() + preset.slice(1)}
-          </button>
+          <div key={preset} className="shrink-0">
+            <button
+              className={`button h-12 flex items-center justify-center transition-all duration-300 hover:scale-105`}
+              onClick={() => applyPreset(preset as keyof typeof presets)}
+            >
+              <span>{preset.charAt(0).toUpperCase() + preset.slice(1)}</span>
+            </button>
+          </div>
         ))}
       </div>
     </div>

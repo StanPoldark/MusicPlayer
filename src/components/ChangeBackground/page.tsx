@@ -1,8 +1,10 @@
 import React from "react";
-import { message, Upload } from "antd";
+import { Button, message, Upload } from "antd";
 import { useDispatch } from "react-redux";
 import { updateBackground } from "@/redux/modules/bg/reducer";
 import { BACKGROUND } from "@/redux/constant";
+import { UploadOutlined } from "@ant-design/icons";
+import "../AudioEffect/index.scss";
 
 const ChangeBackground: React.FC = () => {
   const dispatch = useDispatch();
@@ -32,16 +34,23 @@ const ChangeBackground: React.FC = () => {
   };
 
   return (
-    <Upload
-      className="bg-upload"
-      accept="image/*"
-      beforeUpload={beforeUpload}
-      showUploadList={false}
-    >
-      <button className="bg-white hover:bg-gray-100">
-        Upload Background Image
-      </button>
-    </Upload>
+    <div className="flex flex-col items-center my-4">
+      <span>Change BackGround</span>
+      <Upload
+        className="bg-upload"
+        accept="image/*"
+        beforeUpload={beforeUpload}
+        showUploadList={false}
+      >
+        <Button
+          className="button"
+          icon={<UploadOutlined />}
+          style={{ width: "25rem" }}
+        >
+          Upload Background Image
+        </Button>
+      </Upload>
+    </div>
   );
 };
 
