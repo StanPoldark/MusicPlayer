@@ -71,16 +71,17 @@ const Login = () => {
 
   // 组件卸载时清理轮询
   useEffect(() => {
+    if(localStorage.getItem("cookie"))     checkLoginStatus(localStorage.getItem("cookie") as string);
+
     return () => {
       cleanupPolling();
     };
   }, [cleanupPolling]);
 
   // 检查登录状态
-  const checkLoginStatus = async (cookie: string): Promise<boolean> => {
+  const checkLoginStatus = useCallback(async (cookie: string): Promise<boolean> => {
     try {
       const response = await getLoginState(cookie);
-
       if (response.data.code === 200) {
         localStorage.setItem("cookie", cookie);
         const user: UserInfo = {
@@ -93,22 +94,13 @@ const Login = () => {
         setLoginStatus(LoginStatus.LOGGED_IN);
         return true;
       }
-
       return false;
     } catch (error) {
-      message.error("Error checking login status",error);
+      message.error("Error checking login status", error);
       setErrorMessage("Login verification failed");
       return false;
     }
-  };
-
-    // 组件挂载时检查登录状态
-    useEffect(() => {
-      const storedCookie = localStorage.getItem("cookie");
-      if (storedCookie) {
-        checkLoginStatus(storedCookie);
-      }
-    }, [checkLoginStatus]); 
+  }, [dispatch]);
   
   // Captcha登录方法
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -269,20 +261,18 @@ const Login = () => {
   const handleLogout = async () => {
     try {
       const response = await logout();
-
-      if (response.code == 200) {
-        message.success("Logged out successfully");
+  
+      if (response.code === 200) {  // 注意这里用 === 而不是 ==
         localStorage.removeItem("cookie");
         dispatch(resetLoginState());
         setLoginStatus(LoginStatus.INITIAL);
-      } else {
-        message.error("Logout failed");
-      }
+      } 
     } catch (error) {
-      message.error("Logout failed",error);
+      // 修改这里的错误处理
+      const errorMessage = error instanceof Error ? error.message : "Logout failed";
+      message.error(errorMessage);
     }
   };
-
   // 渲染二维码登录部分
   const renderQRCodeSection = () => {
     if (

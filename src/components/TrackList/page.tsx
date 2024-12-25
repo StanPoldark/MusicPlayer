@@ -13,7 +13,7 @@ import { List, Spin, message } from "antd";
 import { LucidePlus } from "lucide-react";
 import {
   setCurrentTrack,
-  addTrackToPlaylist
+  addTrackToPlaylist,
 } from "@/redux/modules/musicPlayer/reducer";
 import {
   setSubscribedList,
@@ -25,9 +25,15 @@ import {
   Track,
   TrackResponse,
 } from "@/redux/modules/types";
-import { SwitcherOutlined, UnorderedListOutlined,VerticalAlignBottomOutlined,RedoOutlined,ArrowLeftOutlined    } from "@ant-design/icons";
+import {
+  SwitcherOutlined,
+  UnorderedListOutlined,
+  VerticalAlignBottomOutlined,
+  RedoOutlined,
+  ArrowLeftOutlined,
+} from "@ant-design/icons";
 import "./index.scss";
-import DownloadAudio from "@/utils/SongList/downloadAudio"
+import DownloadAudio from "@/utils/SongList/downloadAudio";
 
 // 定义显示模式类型
 type DisplayMode = "playlist" | "tracks";
@@ -73,8 +79,7 @@ const TrackList: React.FC = () => {
   // 定义是否显示歌单名称
   const [ListName, setListName] = useState<boolean>(true);
   // 定义是否处于返回模式
-  const [isBackMode, setIsBackMode] = useState<boolean>(false);  // State to track if in back mode
-
+  const [isBackMode, setIsBackMode] = useState<boolean>(false); // State to track if in back mode
 
   // 获取用户歌单列表
   const fetchUserMusicList = useCallback(async (userId: string) => {
@@ -139,34 +144,34 @@ const TrackList: React.FC = () => {
   const getSongsWithUrls = async (songList: any[]) => {
     // 获取所有歌曲的 ID
     const songIds = songList.map((song) => song.id);
-  
+
     // 获取歌曲的 URL
-    const response = await getSongUrls(songIds);  // 调用 getSongUrls 获取歌曲数据
-  
+    const response = await getSongUrls(songIds); // 调用 getSongUrls 获取歌曲数据
+
     // 检查返回的数据是否有效
     if (response.code !== 200 || !response.data) {
-      throw new Error('Failed to fetch song URLs');
+      throw new Error("Failed to fetch song URLs");
     }
-  
+
     // 将 URL 添加到歌曲对象中
     const updatedSongList = songList.map((song) => {
       const songData = response.data.find((data: any) => data.id === song.id);
-  
+
       // 如果 URL 存在并且有效（非 null 或 404），使用它，否则使用空字符串
-      const songUrl = songData && songData.url 
-      ? `/api/proxy/music?url=${encodeURIComponent(songData.url)}` 
-      : ''; 
-  
+      const songUrl =
+        songData && songData.url
+          ? `/api/proxy/music?url=${encodeURIComponent(songData.url)}`
+          : "";
+
       return {
         ...song,
         url: songUrl,
         time: songData?.time || 0,
       };
     });
-  
+
     return updatedSongList;
   };
-  
 
   // 处理歌单点击事件
   const handleItemClick = useCallback(
@@ -198,7 +203,7 @@ const TrackList: React.FC = () => {
           })
         );
 
-       songList = await getSongsWithUrls(songList);
+        songList = await getSongsWithUrls(songList);
 
         dispatch(
           addTrackList({
@@ -288,7 +293,7 @@ const TrackList: React.FC = () => {
   const toggleList = useCallback(() => {
     const newShowSubscribed = !showSubscribed;
     setShowSubscribed(newShowSubscribed);
-    setListName(!ListName)
+    setListName(!ListName);
     const targetList = newShowSubscribed ? subscribedList : createdList;
     setDisplayList(targetList.length ? targetList : []);
   }, [showSubscribed, subscribedList, createdList]);
@@ -296,7 +301,7 @@ const TrackList: React.FC = () => {
   // 切换显示模式
   const toggleDisplayMode = useCallback(() => {
     setDisplayMode((prev) => (prev === "playlist" ? "tracks" : "playlist"));
-    setIsBackMode(!isBackMode);  // Toggle back mode when switching modes
+    setIsBackMode(!isBackMode); // Toggle back mode when switching modes
   }, [isBackMode]);
 
   // 获取当前歌单的歌曲列表
@@ -355,7 +360,13 @@ const TrackList: React.FC = () => {
 
   // 渲染列表内容
   const listContent = useMemo(() => {
-    if (isLoading) {
+    if (!localStorage.getItem("cookie")) {
+      return (
+        <div className="flex justify-center items-center h-40">
+          <span>Please Login First</span>
+        </div>
+      );
+    } else if (isLoading) {
       return (
         <div className="flex justify-center items-center h-40">
           <Spin size="large" />
@@ -420,7 +431,7 @@ const TrackList: React.FC = () => {
                   style={{ marginLeft: 10 }}
                   aria-label="Download track"
                 >
-                  <VerticalAlignBottomOutlined size={20} className="mr-2"  />
+                  <VerticalAlignBottomOutlined size={20} className="mr-2" />
                 </button>
               </List.Item>
             )}
@@ -496,33 +507,37 @@ const TrackList: React.FC = () => {
         style={{ textAlign: "center", marginBottom: 20 }}
       >
         <span className="align-text-center text-xl font-bold text-white">
-          {displayMode === "playlist" ? (ListName ? "订阅的歌单":"创建的歌单") : "歌单详情"}
+          {displayMode === "playlist"
+            ? ListName
+              ? "订阅的歌单"
+              : "创建的歌单"
+            : "歌单详情"}
         </span>
-        <div style={{display: "flex"}}>
+        <div style={{ display: "flex" }}>
           {displayMode === "playlist" && (
             <button>
               <SwitcherOutlined
                 onClick={toggleList}
-                style={{ fontSize: 24, color: "white"}}
+                style={{ fontSize: 24, color: "white" }}
               />
             </button>
           )}
           {displayMode === "tracks" ? (
             <button onClick={toggleDisplayMode}>
-              <ArrowLeftOutlined style={{ fontSize: 24, marginLeft: 20  }} />
+              <ArrowLeftOutlined style={{ fontSize: 24, marginLeft: 20 }} />
             </button>
           ) : (
             <button onClick={toggleDisplayMode}>
-              <UnorderedListOutlined style={{ fontSize: 24, marginLeft: 20  }} />
+              <UnorderedListOutlined style={{ fontSize: 24, marginLeft: 20 }} />
             </button>
           )}
           <button
             onClick={refreshPlaylists}
             style={{ fontSize: 24, color: "white", marginLeft: 20 }}
           >
-            <RedoOutlined  />
-          </button>  
-          </div>
+            <RedoOutlined />
+          </button>
+        </div>
       </div>
       {listContent}
     </div>
