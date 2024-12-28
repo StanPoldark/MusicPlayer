@@ -22,6 +22,8 @@ npm install
 npm run dev  
 ```
 
+Replace baseURL with your own server URL in `src/app/api/axiosConfig.js`.
+
 ## Tips:
 Currently, only QR code login is supported. The button for captcha login is hidden due to recent changes in the NetEase Cloud Music API, which enforces additional security checks for non-secure login methods.
 
