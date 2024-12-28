@@ -20,7 +20,7 @@ import {
 import { useAppSelector, useAppDispatch } from "@/hooks/hooks";
 import { UserInfo } from "@/redux/modules/types";
 import Image from "next/image";
-import "../AudioEffect/index.scss"
+import "./index.scss"
 
 enum LoginStatus {
   INITIAL,
@@ -400,19 +400,19 @@ const Login = () => {
         <div className="space-y-4 text-center">
           <button
             onClick={startQRCodeLogin}
-            className="button"  style={{width: '15rem',marginBottom: '0',padding:'20px',height:'2rem'}}
+            className="Lbutton"  style={{width: '15rem',marginBottom: '0',padding:'20px',height:'2rem'}}
           >
             {loginStatus === LoginStatus.GENERATING_QR
               ? <span>正在生成二维码...</span>
               : <span>扫码登录</span>}
           </button>
-          <button
+          {/*<button
             onClick={() => setLoginStatus(LoginStatus.CAPTCHA_LOGIN)}
             className="button"  style={{width: '15rem', marginBottom: '20px',padding:'20px',height:'2rem'}}
           >
             <span>手机号验证码登录</span>
             
-          </button>
+          </button>*/}
         </div>
       </div>
     </div>

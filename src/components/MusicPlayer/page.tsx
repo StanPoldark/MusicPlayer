@@ -120,7 +120,6 @@ const MusicPlayer: React.FC = () => {
     };
   }, [currentTrack?.url, hasUserInteracted, setAudio]);
 
-
   // Progress and playback tracking
   useEffect(() => {
     if (!audioRef.current || !hasUserInteracted) return;

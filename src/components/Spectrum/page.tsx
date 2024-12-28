@@ -72,23 +72,24 @@ const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
         isInitializedRef.current = true;
 
         try {
-          // Initialize Tone.js effects
           await Tone.start();
           Tone.setContext(audioContext);
+
+          // 创建但不连接效果器
           const reverb = new Tone.Reverb({ decay: 3 }).toDestination();
           const eq = new Tone.EQ3().connect(reverb);
           const compressor = new Tone.Compressor().connect(eq);
           const gainNode = new Tone.Gain(1);
-          
-          // Create and connect analyzer node
+
+          // 创建分析器
           analyserRef.current = audioContext.createAnalyser();
           analyserRef.current.fftSize = 256;
-          
-          // Connect the audio chain
+
+          // 只连接增益节点到分析器和输出
           webAudioSourceNode.connect(gainNode.input);
-          gainNode.connect(compressor);
           gainNode.connect(analyserRef.current);
-          
+          gainNode.connect(audioContext.destination); // 直接连接到输出
+
           setEffectsChain({ reverb, eq, compressor, gain: gainNode });
         } catch (error) {
           console.error("Error initializing audio effects:", error);
@@ -96,12 +97,11 @@ const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
         }
       }
     };
-
     initializeEffects();
 
     return () => {
       if (isInitializedRef.current) {
-        Object.values(effectsChain).forEach(effect => effect?.dispose());
+        Object.values(effectsChain).forEach((effect) => effect?.dispose());
         if (webAudioSourceNode) webAudioSourceNode.disconnect();
         isInitializedRef.current = false;
       }
@@ -113,8 +113,24 @@ const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
 
   // Apply audio effect preset based on the selected preset
   useEffect(() => {
+    if (!selectedPreset || selectedPreset === "n") {
+      if (effectsChain.gain) {
+        effectsChain.gain.disconnect();
+        effectsChain.gain.connect(audioContext?.destination);
+        effectsChain.gain.connect(analyserRef.current); // 保持分析器连接
+      }
+      return;
+    }
+
     const preset = presets[selectedPreset];
-    
+
+    if (effectsChain.gain && effectsChain.compressor) {
+      effectsChain.gain.disconnect();
+      effectsChain.gain.connect(effectsChain.compressor);
+      effectsChain.gain.connect(analyserRef.current); // 重要：确保分析器保持连接
+    }
+
+    // 其他设置保持不变...
     if (effectsChain.reverb) {
       effectsChain.reverb.set({ decay: Math.max(preset.reverb, 0.001) });
     }
@@ -133,7 +149,7 @@ const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
     }
 
     if (effectsChain.gain) {
-      effectsChain.gain.gain.value = selectedPreset === "a" ? 2 : 1;
+      effectsChain.gain.gain.value = selectedPreset === "n" ? 2 : 1;
     }
   }, [selectedPreset]);
 
@@ -148,7 +164,7 @@ const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
 
       const barWidth = width / arr.length;
       let x = 0;
-      
+
       arr.forEach((value) => {
         const barHeight = (value / 255) * height;
         const hue = (value / 255) * 220; // Blue spectrum
@@ -207,10 +223,7 @@ const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
   return (
     <div className="flex flex-col items-center gap-4">
       <div className="relative w-full">
-        <canvas 
-          ref={canvasRef} 
-          className="w-full h-8 rounded-lg bg-black/5"
-        />
+        <canvas ref={canvasRef} className="w-full h-8 rounded-lg bg-black/5" />
       </div>
     </div>
   );

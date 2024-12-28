@@ -3,8 +3,7 @@ import { Button, message, Upload } from "antd";
 import { useDispatch } from "react-redux";
 import { updateBackground } from "@/redux/modules/bg/reducer";
 import { BACKGROUND } from "@/redux/constant";
-import { UploadOutlined } from "@ant-design/icons";
-import "../AudioEffect/index.scss";
+import "@/components/Login/index.scss";
 
 const ChangeBackground: React.FC = () => {
   const dispatch = useDispatch();
@@ -14,7 +13,7 @@ const ChangeBackground: React.FC = () => {
     let couldUpload = true;
 
     if (file.size / 1024 / 1024 > 1.5) {
-      message.error("Image exceeds 1.5MB limit. Please choose another.");
+      alert("Image exceeds 1.5MB limit. Please choose another.");
       couldUpload = false;
       return Upload.LIST_IGNORE;
     }
@@ -43,8 +42,7 @@ const ChangeBackground: React.FC = () => {
         showUploadList={false}
       >
         <Button
-          className="button"
-          icon={<UploadOutlined />}
+          className="Lbutton"
           style={{ width: "25rem" }}
         >
           Upload Background Image

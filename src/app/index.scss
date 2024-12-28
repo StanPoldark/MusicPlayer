@@ -67,6 +67,12 @@ body {
   transition: background-color 0.5s, box-shadow 0.5s;
   overflow: hidden;
   font-size: large;
+
+  transition: transform 0.2s ease;
+  
+  &:hover {
+    animation: wiggle 0.5s ease;
+  }
 }
 
 
@@ -204,4 +210,16 @@ body {
 
 .ant-collapse-header-text{
   font-size: 1rem;
+}
+
+@keyframes wiggle {
+  0% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(0.5deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
 }

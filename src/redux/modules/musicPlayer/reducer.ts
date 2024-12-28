@@ -35,7 +35,7 @@ interface MusicPlayerState {
 const initialState: MusicPlayerState = {
   currentTrack: initialTracks[0],
   isPlaying: false,
-  volume: 0.5,
+  volume: 0.2,
   playlist: initialTracks,
   spectrumData: new Array(64).fill(0),
   isAnalyzing: false,

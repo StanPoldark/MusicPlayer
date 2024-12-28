@@ -9,7 +9,7 @@ interface PresetState {
 }
 
 const initialState: PresetState = {
-  selectedPreset: "n", // 默认预设为 "n"
+  selectedPreset: null,
 };
 
 const presetSlice = createSlice({
