@@ -1,6 +1,6 @@
 # Simple Music Player  
 
-A simple music player built with **Next.js 15** and **React 18**.  
+A simple music player built with **Next.js 15** and **React 18**.  [Demo](https://music-player-six-gamma.vercel.app/)
 
 ### Frontend Design Inspiration  
 
@@ -9,6 +9,10 @@ The frontend styling is inspired by Bilibili content creator **青夏家的Ela**
 ### Backend API  
 
 The backend uses the [NeteaseCloudMusicApi](https://github.com/Binaryify/NeteaseCloudMusicApi) to fetch music data.  
+
+### Third-party Lib  
+
+Live2d component use the [oh-my-live2d](https://github.com/oh-my-live2d/oh-my-live2d) 
 
 ---  
 
@@ -21,7 +25,7 @@ cd music-player
 npm install  
 npm run dev  
 ```
-
+Then open [localhost](http://localhost:3000/) in your browser to use it locally.
 Replace baseURL with your own server URL in `src/app/api/axiosConfig.js`.
 
 ## Tips:
