@@ -12,7 +12,7 @@ The backend uses the [NeteaseCloudMusicApi](https://github.com/Binaryify/Netease
 
 ### Third-party Lib  
 
-Live2d component use [oh-my-live2d](the https://github.com/oh-my-live2d/oh-my-live2d) 
+Live2d component use the [oh-my-live2d](https://github.com/oh-my-live2d/oh-my-live2d) 
 
 ---  
 
