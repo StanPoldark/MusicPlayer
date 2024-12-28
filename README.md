@@ -1,36 +1,32 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Simple Music Player  
 
-## Getting Started
+A simple music player built with **Next.js 15** and **React 18**.  
 
-First, run the development server:
+### Frontend Design Inspiration  
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+The frontend styling is inspired by Bilibili content creator **青夏家的Ela**. Check out their project here: [React-Small-Music-Player](https://github.com/QingXia-Ela/React-Small-Music-Player).  
+
+### Backend API  
+
+The backend uses the [NeteaseCloudMusicApi](https://github.com/Binaryify/NeteaseCloudMusicApi) to fetch music data.  
+
+---  
+
+## Getting Started  
+
+To start the development server:  
+
+```bash  
+cd music-player  
+npm install  
+npm run dev  
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Tips:
+Currently, only QR code login is supported. The button for captcha login is hidden due to recent changes in the NetEase Cloud Music API, which enforces additional security checks for non-secure login methods.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Future Enhancements:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Expanding functionalities based on the API.
+Creating a PC client using Electron to support local music playback.
+Developing a mobile version for better accessibility.

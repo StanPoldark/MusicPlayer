@@ -400,7 +400,7 @@ const Login = () => {
         <div className="space-y-4 text-center">
           <button
             onClick={startQRCodeLogin}
-            className="Lbutton"  style={{width: '15rem',marginBottom: '0',padding:'20px',height:'2rem'}}
+            className="Lbutton"  style={{width: '14rem',marginBottom: '0',padding:'20px'}}
           >
             {loginStatus === LoginStatus.GENERATING_QR
               ? <span>正在生成二维码...</span>

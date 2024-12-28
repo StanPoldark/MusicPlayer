@@ -1,5 +1,5 @@
 import React from "react";
-import { Button, message, Upload } from "antd";
+import { Button, Upload } from "antd";
 import { useDispatch } from "react-redux";
 import { updateBackground } from "@/redux/modules/bg/reducer";
 import { BACKGROUND } from "@/redux/constant";
@@ -43,7 +43,7 @@ const ChangeBackground: React.FC = () => {
       >
         <Button
           className="Lbutton"
-          style={{ width: "25rem" }}
+          style={{ width: "20rem" }}
         >
           Upload Background Image
         </Button>
