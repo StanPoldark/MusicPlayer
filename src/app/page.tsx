@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Row, Col, Drawer, Collapse } from "antd";
 import { AudioProvider } from "@/contexts/AudioContext";
 import MusicPlayer from "@/components/MusicPlayer/page";
@@ -11,8 +11,6 @@ import MusicSearch from "@/components/Search/page";
 import mediaQuery from "@/utils/mediaQuery";
 import BottomNavigation from "@/components/BottomNavigation/page";
 import SnowfallBackground from "@/components/Snow/page";
-
-import Live2DViewer from "@/components/Live2DViewer/page";
 import Utils from "@/components/Utils/page";
 import {
   UserOutlined,
@@ -26,6 +24,55 @@ import "./index.scss";
 export default function HomePage() {
   const isMobile = mediaQuery("(max-width: 768px)");
   const [activeDrawer, setActiveDrawer] = useState<string | null>(null);
+  const collapseParentRef = useRef<HTMLDivElement>(null);
+  const [contentHeight, setContentHeight] = useState(0);
+
+  const calculateContentHeight = () => {
+    const parent = collapseParentRef.current;
+    if (!parent) return;
+
+    const parentHeight = parent.clientHeight;
+    const header = parent.querySelector(".ant-collapse-header");
+    const headerHeight = header?.clientHeight || 48;
+    const totalHeadersHeight = headerHeight * collapseItems.length;
+
+    setContentHeight(Math.max(parentHeight - totalHeadersHeight, 200)); // 最小高度200px
+  };
+
+  // 响应式高度调整
+  useEffect(() => {
+    if (!collapseParentRef.current) return;
+
+    const resizeObserver = new ResizeObserver(() => {
+      calculateContentHeight();
+      // 添加防抖优化
+      clearTimeout((window as any).resizeTimer);
+      (window as any).resizeTimer = setTimeout(calculateContentHeight, 100);
+    });
+
+    resizeObserver.observe(collapseParentRef.current);
+    return () => resizeObserver.disconnect();
+  }, []);
+
+  // 生成带动态高度的collapseItems
+  const getDynamicCollapseItems = () => {
+    return collapseItems.map((item) => ({
+      ...item,
+      children: (
+        <div
+          className="box"
+          style={{
+            height: contentHeight,
+            width: "100%",
+            overflow: "auto",
+            scrollBehavior: "smooth",
+          }}
+        >
+          {item.children}
+        </div>
+      ),
+    }));
+  };
 
   // Bottom navigation items for mobile
   const mobileNavItems = [
@@ -66,7 +113,7 @@ export default function HomePage() {
       key: "tracklist",
       label: "Track List",
       children: (
-        <div className="box" style={{ height: "100%", width: "100%" }}>
+        <div className="box2" style={{ height: "100%", width: "100%" }}>
           <TrackList />
         </div>
       ),
@@ -76,7 +123,7 @@ export default function HomePage() {
       key: "playlist",
       label: "Play List",
       children: (
-        <div className="box" style={{ height: "100%", width: "100%" }}>
+        <div className="box2" style={{ height: "100%", width: "100%" }}>
           <PlayList />
         </div>
       ),
@@ -88,7 +135,7 @@ export default function HomePage() {
             key: "utils",
             label: "Utils",
             children: (
-              <div className="box" style={{ height: "100%", width: "100%" }}>
+              <div className="box2" style={{ height: "100%", width: "100%" }}>
                 <Utils />
               </div>
             ),
@@ -111,7 +158,6 @@ export default function HomePage() {
   return (
     <AudioProvider>
       <SnowfallBackground />
-      {!isMobile && <Live2DViewer />}
       <div
         style={{
           margin: "20px",
@@ -125,7 +171,7 @@ export default function HomePage() {
               gutter={0}
               style={{ height: "100%", paddingBottom: isMobile ? "5rem" : "0" }}
             >
-              <Col span={24}>
+              <Col span={24} style={{ height: "100%" }}>
                 <div className="box" style={{ height: "100%", width: "100%" }}>
                   <LyricsDisplay />
                   <MusicPlayer />
@@ -154,7 +200,7 @@ export default function HomePage() {
                   borderTopRightRadius: "20px",
                 }}
               >
-                <div className="box" style={{ height: "100%", width: "100%" }}>
+                <div className="box2" style={{ height: "100%", width: "100%" }}>
                   {item.component}
                 </div>
               </Drawer>
@@ -174,17 +220,19 @@ export default function HomePage() {
                 </div>
               </Row>
             </Col>
-            <Col span={12}>
+            <Col span={12} style={{ height: "100%" }}>
               <div className="box" style={{ height: "100%" }}>
                 <LyricsDisplay />
                 <MusicPlayer />
               </div>
             </Col>
-            <Col span={6} style={{ height: "100%" }}>
+            <Col span={6} style={{ height: "100%" }} ref={collapseParentRef}>
               <Collapse
-                accordion // This ensures only one panel can be open at a time
-                items={collapseItems}
+                accordion
+                items={getDynamicCollapseItems()}
                 defaultActiveKey={[]}
+                onChange={calculateContentHeight} // 面板切换时重新计算
+                className="custom-collapse"
               />
             </Col>
           </Row>

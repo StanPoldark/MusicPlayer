@@ -10,11 +10,6 @@ The frontend styling is inspired by Bilibili content creator **青夏家的Ela**
 
 The backend uses the [NeteaseCloudMusicApi](https://github.com/Binaryify/NeteaseCloudMusicApi) to fetch music data.  
 
-### Third-party Lib  
-
-Live2d component use the [oh-my-live2d](https://github.com/oh-my-live2d/oh-my-live2d) 
-
----  
 
 ## Getting Started  
 
