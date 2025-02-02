@@ -289,9 +289,10 @@ const TrackList: React.FC = () => {
           );
           return;
         }
+        
         const updatedTrack = {
           ...track,
-          lyric: songLyric.lrc.lyric,
+          lyric: songLyric.uncollected ?  "" : songLyric.lrc.lyric,
         };
 
         // Store the updated track in the state
@@ -302,7 +303,6 @@ const TrackList: React.FC = () => {
         dispatch(addTrackToPlaylist({ from: "play", track: updatedTrack }));
       } catch (error) {
         console.error("Error fetching song URL:", error);
-        message.error("Failed to load song");
       } finally {
         setIsLoadingTracks(false);
       }
