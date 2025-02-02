@@ -7,6 +7,7 @@ import {
   getSongUrls,
   checkSong,
   getlyric,
+  cloud,
 } from "@/app/api/music";
 import simplifyResult from "@/utils/SongList/simplifyResult";
 import { List, Spin, message } from "antd";
@@ -23,7 +24,9 @@ import { addTrackList } from "@/redux/modules/SongList/reducer";
 import {
   SimplifiedPlaylist,
   Track,
+  CloudResponse,
   TrackResponse,
+  AudioResponse,
 } from "@/redux/modules/types";
 import {
   SwitcherOutlined,
@@ -31,13 +34,15 @@ import {
   VerticalAlignBottomOutlined,
   RedoOutlined,
   ArrowLeftOutlined,
+  CloudOutlined,
 } from "@ant-design/icons";
 import "./index.scss";
 import DownloadAudio from "@/utils/SongList/downloadAudio";
 
 // 定义显示模式类型
-type DisplayMode = "playlist" | "tracks";
-// 定义获取数据失败的错误类型
+type View = 'cloud' | 'subscribed' | 'created' | 'tracks';
+
+// Define error type
 type FetchError = {
   message: string;
   code?: number;
@@ -45,41 +50,21 @@ type FetchError = {
 
 const TrackList: React.FC = () => {
   const dispatch = useAppDispatch();
-  // 从 Redux 中获取订阅的歌单和创建的歌单
   const { subscribedList = [], createdList = [] } = useAppSelector(
     (state) => state.playlist
   );
-  // 从 Redux 中获取用户信息
   const { userInfo } = useAppSelector((state) => state.login);
-  // 从 Redux 中获取歌曲列表
   const { trackLists } = useAppSelector((state) => state.tracks);
 
-  // 定义加载状态
+  // State declarations
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  // 定义加载歌曲状态
   const [isLoadingTracks, setIsLoadingTracks] = useState<boolean>(false);
-  // 定义加载歌单 ID
-  const [loadingPlaylistId, setLoadingPlaylistId] = useState<number | null>(
-    null
-  );
-  // 定义显示的歌单列表
+  const [loadingPlaylistId, setLoadingPlaylistId] = useState<number | null>(null);
   const [displayList, setDisplayList] = useState<SimplifiedPlaylist[]>([]);
-  // 定义显示模式
-  const [displayMode, setDisplayMode] = useState<DisplayMode>("playlist");
-  // 定义当前歌单 ID
-  const [currentPlaylistId, setCurrentPlaylistId] = useState<number | null>(
-    null
-  );
-  // 定义是否显示订阅的歌单
-  const [showSubscribed, setShowSubscribed] = useState<boolean>(true);
-  // 定义错误信息
+  const [currentView, setCurrentView] = useState<View>('subscribed');
+  const [currentPlaylistId, setCurrentPlaylistId] = useState<number | null>(null);
   const [error, setError] = useState<FetchError | null>(null);
-  // 定义存储的歌曲列表
   const [storedTracks, setStoredTracks] = useState<Track[]>([]);
-  // 定义是否显示歌单名称
-  const [ListName, setListName] = useState<boolean>(true);
-  // 定义是否处于返回模式
-  const [isBackMode, setIsBackMode] = useState<boolean>(false); // State to track if in back mode
 
   // 获取用户歌单列表
   const fetchUserMusicList = useCallback(async (userId: string) => {
@@ -140,6 +125,57 @@ const TrackList: React.FC = () => {
     [dispatch]
   );
 
+    // Handle cloud view
+    const handleCloudView = useCallback(async () => {
+      if (loadingPlaylistId || isLoadingTracks) return;
+  
+      const existingCloudList = trackLists.find((list) => list.playlistId === 0);
+      if (existingCloudList) {
+        setCurrentView('cloud');
+        setCurrentPlaylistId(0);
+        return;
+      }
+  
+      try {
+        setIsLoadingTracks(true);
+        setLoadingPlaylistId(null);
+  
+        const res: CloudResponse = await cloud();
+        
+        if (!res.data || !Array.isArray(res.data)) {
+          throw new Error("Invalid cloud data received");
+        }
+  
+        let songList: Track[] = await Promise.all(
+          res.data.map(async (song: any): Promise<Track> => ({
+            name: song.simpleSong.name,
+            id: song.simpleSong.id,
+            ar: song.simpleSong.ar?.map((ar: any) => ar.name).join(", ") || "",
+            picUrl: song.simpleSong.al?.picUrl || "",
+            url: "",
+            time: 0,
+          }))
+        );
+  
+        songList = await getSongsWithUrls(songList);
+  
+        dispatch(addTrackList({
+          playlistId: 0,
+          tracks: songList,
+        }));
+        
+        setCurrentView('cloud');
+        setCurrentPlaylistId(0);
+      } catch (error) {
+        console.error("Error fetching cloud data:", error);
+        message.error("Failed to load cloud music");
+      } finally {
+        setIsLoadingTracks(false);
+        setLoadingPlaylistId(null);
+      }
+    }, [dispatch, trackLists, loadingPlaylistId, isLoadingTracks]);
+
+    
   // 获取歌曲的 URL
   const getSongsWithUrls = async (songList: any[]) => {
     // 获取所有歌曲的 ID
@@ -178,9 +214,8 @@ const TrackList: React.FC = () => {
     async (id: number) => {
       if (loadingPlaylistId) return;
 
-      // Check if the track list already exists for the current playlist
       if (trackLists.find((list) => list.playlistId === id)) {
-        setDisplayMode("tracks");
+        setCurrentView('tracks');
         setCurrentPlaylistId(id);
         return;
       }
@@ -211,7 +246,7 @@ const TrackList: React.FC = () => {
             tracks: songList,
           })
         );
-        setDisplayMode("tracks");
+        setCurrentView('tracks');
         setCurrentPlaylistId(id);
       } catch (error) {
         console.error("Error fetching track data:", error);
@@ -289,31 +324,23 @@ const TrackList: React.FC = () => {
     loadUserPlaylists();
   }, [userInfo, fetchUserMusicList, splitPlayList]);
 
-  // 切换歌单列表
-  const toggleList = useCallback(() => {
-    const newShowSubscribed = !showSubscribed;
-    setShowSubscribed(newShowSubscribed);
-    setListName(!ListName);
-    const targetList = newShowSubscribed ? subscribedList : createdList;
-    setDisplayList(targetList.length ? targetList : []);
-  }, [showSubscribed, subscribedList, createdList]);
+ // Handle view changes
+ const handleSubscribedView = useCallback(() => {
+  setDisplayList(subscribedList);
+  setCurrentView('subscribed');
+}, [subscribedList]);
 
-  // 切换显示模式
-  const toggleDisplayMode = useCallback(() => {
-    setDisplayMode((prev) => (prev === "playlist" ? "tracks" : "playlist"));
-    setIsBackMode(!isBackMode); // Toggle back mode when switching modes
-  }, [isBackMode]);
+const handleCreatedView = useCallback(() => {
+  setDisplayList(createdList);
+  setCurrentView('created');
+}, [createdList]);
 
-  // 获取当前歌单的歌曲列表
-  const currentTrackList = useMemo(() => {
-    if (displayMode === "tracks" && currentPlaylistId) {
-      const trackListItem = trackLists.find(
-        (list) => list.playlistId === currentPlaylistId
-      );
-      return trackListItem ? trackListItem.tracks : [];
-    }
-    return [];
-  }, [displayMode, currentPlaylistId, trackLists]);
+const handleBackToList = useCallback(() => {
+  if (currentView === 'tracks') {
+    const previousView = displayList === subscribedList ? 'subscribed' : 'created';
+    setCurrentView(previousView);
+  }
+}, [currentView, displayList, subscribedList]);
 
   // 添加歌曲到歌单
   const handleAddToPlaylist = useCallback(
@@ -358,105 +385,95 @@ const TrackList: React.FC = () => {
     }
   }, [userInfo, fetchUserMusicList, splitPlayList]);
 
-  // 渲染列表内容
-  const listContent = useMemo(() => {
-    if (!localStorage.getItem("cookie")) {
-      return (
-        <div className="flex justify-center items-center h-40">
-          <span>Please Login First</span>
-        </div>
-      );
-    } else if (isLoading) {
-      return (
-        <div className="flex justify-center items-center h-40">
-          <Spin size="large" />
-        </div>
-      );
-    }
+ // Render header
+ const renderHeader = () => {
+  const viewTitles = {
+    cloud: "云歌单",
+    subscribed: "订阅的歌单",
+    created: "创建的歌单",
+    tracks: "歌单详情"
+  };
 
-    if (error) {
-      return <p className="text-red-500">{error.message}</p>;
-    }
+  return (
+    <div className="flex flex-row justify-between items-center mt-4 px-4 mb-5">
+      <span className="text-xl font-bold text-white">
+        {viewTitles[currentView]}
+      </span>
+      <div className="flex space-x-4">
+        <button
+          onClick={handleCloudView}
+          className="text-white hover:text-blue-400"
+          title="Cloud Music"
+        >
+          <CloudOutlined style={{ fontSize: 24 }} />
+        </button>
+        <button
+          onClick={handleSubscribedView}
+          className="text-white hover:text-blue-400"
+          title="Subscribed Playlists"
+        >
+          <UnorderedListOutlined style={{ fontSize: 24 }} />
+        </button>
+        <button
+          onClick={handleCreatedView}
+          className="text-white hover:text-blue-400"
+          title="Created Playlists"
+        >
+          <SwitcherOutlined style={{ fontSize: 24 }} />
+        </button>
+        <button
+          onClick={refreshPlaylists}
+          className="text-white hover:text-blue-400"
+          title="Refresh"
+        >
+          <RedoOutlined style={{ fontSize: 24 }} />
+        </button>
+        {currentView === 'tracks' && (
+          <button
+            onClick={handleBackToList}
+            className="text-white hover:text-blue-400"
+            title="Back"
+          >
+            <ArrowLeftOutlined style={{ fontSize: 24 }} />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+const listContent = useMemo(() => {
+  if (!localStorage.getItem("cookie")) {
+    return (
+      <div className="flex justify-center items-center h-40">
+        <span>Please Login First</span>
+      </div>
+    );
+  }
 
-    // 歌曲列表视图
-    if (displayMode === "tracks") {
-      const currentTrackList =
-        trackLists.find((list) => list.playlistId === currentPlaylistId)
-          ?.tracks || [];
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-40">
+        <Spin size="large" />
+      </div>
+    );
+  }
 
-      if (!currentTrackList.length) {
-        return (
-          <p style={{ textAlign: "center", color: "gray" }}>No tracks found.</p>
-        );
-      }
+  if (error) {
+    return <p className="text-red-500">{error.message}</p>;
+  }
 
-      return (
-        <div className="relative">
-          {isLoadingTracks && (
-            <div className="absolute inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-              <Spin size="large" />
-            </div>
-          )}
-          <List
-            className="trackList"
-            itemLayout="horizontal"
-            dataSource={currentTrackList}
-            renderItem={(track) => (
-              <List.Item
-                style={{
-                  paddingInlineStart: 20,
-                  opacity: isLoadingTracks ? 0.5 : 1,
-                  pointerEvents: isLoadingTracks ? "none" : "auto",
-                }}
-                onClick={() => handleSongClick(track)}
-              >
-                <List.Item.Meta
-                  title={<span style={{ color: "white" }}>{track.name}</span>}
-                />
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleAddToPlaylist(track);
-                  }}
-                  className="text-white hover:text-green-500"
-                >
-                  <LucidePlus size={20} />
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation(); // 阻止事件冒泡
-                    DownloadAudio(track);
-                  }}
-                  className="text-white hover:text-blue-500"
-                  style={{ marginLeft: 10 }}
-                  aria-label="Download track"
-                >
-                  <VerticalAlignBottomOutlined size={20} className="mr-2" />
-                </button>
-              </List.Item>
-            )}
-            style={{
-              maxHeight: "24rem",
-              overflowY: "auto",
-              color: "white",
-            }}
-          />
-        </div>
-      );
-    }
+  if (currentView === 'cloud' || currentView === 'tracks') {
+    const currentTrackList = currentView === 'cloud'
+      ? trackLists.find((list) => list.playlistId === 0)?.tracks || []
+      : trackLists.find((list) => list.playlistId === currentPlaylistId)?.tracks || [];
 
-    // 歌单列表视图
-    if (!displayList.length) {
-      return (
-        <p style={{ textAlign: "center", color: "gray" }}>
-          No playlists found.
-        </p>
-      );
+    if (!currentTrackList.length) {
+      return <p className="text-center text-gray-500">No tracks found.</p>;
     }
 
     return (
-      <div className="relative">
-        {loadingPlaylistId && (
+      <div className="relative w-full h-full">
+        {isLoadingTracks && (
           <div className="absolute inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
             <Spin size="large" />
           </div>
@@ -464,84 +481,115 @@ const TrackList: React.FC = () => {
         <List
           className="trackList"
           itemLayout="horizontal"
-          dataSource={displayList}
+          dataSource={currentTrackList}
           renderItem={(track) => (
             <List.Item
-              className="trackitem"
-              onClick={() => handleItemClick(track.id)}
+              className="px-5 hover:bg-gray-700"
+              onClick={() => handleSongClick(track)}
               style={{
                 cursor: "pointer",
                 paddingInlineStart: 20,
                 opacity: loadingPlaylistId ? 0.5 : 1,
                 pointerEvents: loadingPlaylistId ? "none" : "auto",
+                scrollBehavior: "smooth",
               }}
             >
               <List.Item.Meta
-                title={<span style={{ color: "white" }}>{track.name}</span>}
+                title={<span className="text-white">{track.name}</span>}
               />
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleAddToPlaylist(track);
+                }}
+                className="text-white hover:text-green-500 mx-2"
+              >
+                <LucidePlus size={20} />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  DownloadAudio(track);
+                }}
+                className="text-white hover:text-blue-500"
+                aria-label="Download track"
+              >
+                <VerticalAlignBottomOutlined size={20} />
+              </button>
             </List.Item>
           )}
           style={{
-            maxHeight: "24rem",
             overflowY: "auto",
             color: "white",
           }}
         />
       </div>
     );
-  }, [
-    isLoading,
-    error,
-    displayList,
-    displayMode,
-    currentTrackList,
-    handleItemClick,
-    isLoadingTracks,
-    loadingPlaylistId,
-  ]);
+  }
+
+  // Playlist view (subscribed or created)
+  if (!displayList.length) {
+    return <p className="text-center text-gray-500">No playlists found.</p>;
+  }
 
   return (
-    <div className="relative w-full" style={{ width: "100%", height: "100%" }}>
-      <div
-        className="flex flex-row justify-around mt-4"
-        style={{ textAlign: "center", marginBottom: 20 }}
-      >
-        <span className="align-text-center text-xl font-bold text-white">
-          {displayMode === "playlist"
-            ? ListName
-              ? "订阅的歌单"
-              : "创建的歌单"
-            : "歌单详情"}
-        </span>
-        <div style={{ display: "flex" }}>
-          {displayMode === "playlist" && (
-            <button>
-              <SwitcherOutlined
-                onClick={toggleList}
-                style={{ fontSize: 24, color: "white" }}
-              />
-            </button>
-          )}
-          {displayMode === "tracks" ? (
-            <button onClick={toggleDisplayMode}>
-              <ArrowLeftOutlined style={{ fontSize: 24, marginLeft: 20 }} />
-            </button>
-          ) : (
-            <button onClick={toggleDisplayMode}>
-              <UnorderedListOutlined style={{ fontSize: 24, marginLeft: 20 }} />
-            </button>
-          )}
-          <button
-            onClick={refreshPlaylists}
-            style={{ fontSize: 24, color: "white", marginLeft: 20 }}
-          >
-            <RedoOutlined />
-          </button>
+    <div className="relative w-full h-full">
+      {loadingPlaylistId && (
+        <div className="absolute inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+          <Spin size="large" />
         </div>
-      </div>
-      {listContent}
+      )}
+      <List
+        className="trackList"
+        itemLayout="horizontal"
+        dataSource={displayList}
+        renderItem={(playlist) => (
+          <List.Item
+            className="trackitem px-5 hover:bg-gray-700"
+            onClick={() => {
+              handleItemClick(playlist.id);
+              setCurrentView('tracks');
+            }}
+            style={{
+              cursor: "pointer",
+              paddingInlineStart: 20,
+              opacity: loadingPlaylistId ? 0.5 : 1,
+              pointerEvents: loadingPlaylistId ? "none" : "auto",
+            }}
+          >
+            <List.Item.Meta
+              title={<span className="text-white">{playlist.name}</span>}
+            />
+          </List.Item>
+        )}
+        style={{
+          overflowY: "auto",
+          color: "white",
+        }}
+      />
     </div>
   );
+}, [
+  currentView,
+  isLoading,
+  error,
+  displayList,
+  trackLists,
+  currentPlaylistId,
+  isLoadingTracks,
+  loadingPlaylistId,
+  handleSongClick,
+  handleAddToPlaylist,
+  handleItemClick
+]);
+
+// Main component render
+return (
+  <div className="relative w-full h-full">
+    {renderHeader()}
+    {listContent}
+  </div>
+);
 };
 
 export default TrackList;

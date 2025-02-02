@@ -52,3 +52,10 @@ export const search = async (keywords: string): Promise<any> => {
     })
   );
 };
+
+
+export const cloud = async (): Promise<any> => {
+  return handleApiCall(() => 
+    apiClient.get('/user/cloud')
+  );
+};

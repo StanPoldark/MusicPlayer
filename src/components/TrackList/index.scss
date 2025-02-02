@@ -27,3 +27,12 @@
   .trackitem{
     transition: background-color 1s ease, box-shadow 1s ease; 
   }
+
+  .trackList{
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+  }
