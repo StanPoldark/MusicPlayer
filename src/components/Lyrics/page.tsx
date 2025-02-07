@@ -2,95 +2,127 @@ import React, { useState, useEffect, useRef } from "react";
 import { useAppSelector } from "@/hooks/hooks";
 import mediaQuery from "@/utils/mediaQuery";
 
-// 定义歌词行接口
-interface LyricLine {
-  time: number;
+// 定义歌词行和字符接口
+interface LyricWord {
   text: string;
+  start: number;
+  end: number;
 }
 
-// 歌词显示组件
+interface LyricLine {
+  startTime: number;
+  endTime: number;
+  words: LyricWord[];
+}
+
 const LyricsDisplay: React.FC = () => {
-  // 判断是否为移动设备
   const isMobile = mediaQuery("(max-width: 768px)");
-  // 从redux中获取当前播放的曲目和播放状态
   const { currentTrack, isPlaying } = useAppSelector(
     (state) => state.musicPlayer
   );
-  // 定义歌词状态
   const [parsedLyrics, setParsedLyrics] = useState<LyricLine[]>([]);
-  // 定义当前歌词索引状态
-  const [currentLyricIndex, setCurrentLyricIndex] = useState<number>(-1);
-  // 定义歌词容器引用
+  const [currentPosition, setCurrentPosition] = useState<{
+    lineIndex: number;
+    charIndex: number;
+  }>({ lineIndex: -1, charIndex: -1 });
   const lyricsContainerRef = useRef<HTMLDivElement>(null);
 
-  // 解析歌词字符串为带时间的歌词数组
+  // 解析歌词
   useEffect(() => {
     if (!currentTrack?.lyric) {
       setParsedLyrics([]);
       return;
     }
 
-    const lyrics: LyricLine[] = [];
-    const lyricLines = currentTrack.lyric.split("\n");
+    const lines: LyricLine[] = [];
+    const rawLines = currentTrack.lyric.split("\n");
+    const timeRegex = /\[(\d+):(\d+\.\d+)\](.*)/;
 
-    lyricLines.forEach((line: any) => {
-      const timeMatch = line.match(/\[(\d+):(\d+\.\d+)\](.*)/);
-      if (timeMatch) {
-        const minutes = parseInt(timeMatch[1]);
-        const seconds = parseFloat(timeMatch[2]);
-        const text = timeMatch[3].trim();
+    // 解析基础时间戳和文本
+    const parsedLines = rawLines
+      .map((line) => {
+        const match = line.match(timeRegex);
+        if (!match) return null;
+        
+        const minutes = parseInt(match[1]);
+        const seconds = parseFloat(match[2]);
+        return {
+          time: minutes * 60 + seconds,
+          text: match[3].trim(),
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => a!.time - b!.time) as { time: number; text: string }[];
 
-        const totalSeconds = minutes * 60 + seconds;
+    // 构建逐字时间数据
+    for (let i = 0; i < parsedLines.length; i++) {
+      const current = parsedLines[i];
+      const next = parsedLines[i + 1];
+      const startTime = current.time;
+      const endTime = next ? next.time : startTime + 10; // 最后一行默认10秒
 
-        if (text) {
-          lyrics.push({
-            time: totalSeconds,
-            text: text,
-          });
-        }
-      }
-    });
+      const characters = current.text.split("");
+      const duration = endTime - startTime;
+      const charDuration = duration / characters.length;
 
-    // 按时间排序歌词
-    lyrics.sort((a, b) => a.time - b.time);
-    setParsedLyrics(lyrics);
+      lines.push({
+        startTime,
+        endTime,
+        words: characters.map((char, index) => ({
+          text: char,
+          start: startTime + index * charDuration,
+          end: startTime + (index + 1) * charDuration,
+        })),
+      });
+    }
+
+    setParsedLyrics(lines);
   }, [currentTrack?.lyric]);
 
-  // 同步歌词与当前播放时间
+  // 更新当前歌词位置
   useEffect(() => {
-    const audioElement = document.getElementById(
-      "audio-element"
-    ) as HTMLAudioElement;
+    const audio = document.getElementById("audio-element") as HTMLAudioElement;
+    if (!audio || !isPlaying) return;
 
-    if (!audioElement || !isPlaying) return;
-
-    const updateCurrentLyric = () => {
-      const currentTime = audioElement.currentTime;
-      const index = parsedLyrics.findLastIndex(
-        (lyric) => lyric.time <= currentTime
+    const updatePosition = () => {
+      const currentTime = audio.currentTime;
+      
+      // 查找当前行
+      let lineIndex = parsedLyrics.findIndex(
+        (line) => currentTime >= line.startTime && currentTime < line.endTime
       );
-
-      if (index !== currentLyricIndex) {
-        setCurrentLyricIndex(index);
-
-        // 滚动到当前歌词
-        if (lyricsContainerRef.current && index !== -1) {
-          const lyricElement = lyricsContainerRef.current.children[
-            index
-          ] as HTMLElement;
-          if (lyricElement) {
-            lyricElement.scrollIntoView({
-              behavior: "smooth",
-              block: "center",
-            });
-          }
+      
+      if (lineIndex === -1) {
+        if (parsedLyrics.length > 0 && currentTime >= parsedLyrics[parsedLyrics.length - 1].endTime) {
+          lineIndex = parsedLyrics.length - 1;
+        } else {
+          return setCurrentPosition({ lineIndex: -1, charIndex: -1 });
         }
+      }
+
+      // 计算当前字符
+      const line = parsedLyrics[lineIndex];
+      const charIndex = Math.floor(
+        ((currentTime - line.startTime) / (line.endTime - line.startTime)) * line.words.length
+      );
+      const clampedIndex = Math.min(charIndex, line.words.length - 1);
+
+      setCurrentPosition((prev) => {
+        if (prev.lineIndex === lineIndex && prev.charIndex === clampedIndex) return prev;
+        return { lineIndex, charIndex: clampedIndex };
+      });
+
+      // 滚动到当前行
+      if (lyricsContainerRef.current) {
+        const lineElement = lyricsContainerRef.current.children[lineIndex] as HTMLElement;
+        lineElement?.scrollIntoView({ behavior: "smooth", block: "center" });
       }
     };
 
-    const intervalId = setInterval(updateCurrentLyric, 100);
-    return () => clearInterval(intervalId);
-  }, [parsedLyrics, currentLyricIndex, isPlaying]);
+    const interval = setInterval(updatePosition, 100);
+    return () => clearInterval(interval);
+  }, [parsedLyrics, isPlaying]);
+
 
   // 没有歌词或没有曲目
   if (!currentTrack?.lyric) {
@@ -115,44 +147,46 @@ const LyricsDisplay: React.FC = () => {
       </div>
     );
   }
-
-  return (
-    <div className="relative w-full" style={{ width: "100%", height: "100%" }}>
+ return (
+    <div className="relative w-full h-full">
       <div
         ref={lyricsContainerRef}
-        className="overflow-y-auto text-center p-4 text-white"
+        className="overflow-y-auto text-center p-4"
         style={{
-          scrollBehavior: "smooth",
           height: "100%",
           position: "absolute",
           top: 0,
           left: 0,
           right: 0,
           bottom: 0,
+          scrollBehavior: "smooth",
         }}
       >
-        <div
-          className="flex flex-row justify-around mt-4"
-          style={{ textAlign: "center", marginBottom: 20 }}
-        >
-          <span className="align-text-center text-xl font-bold text-white">
-            {currentTrack.name}
-          </span>
+        <div className="text-xl font-bold text-white mb-6">
+          {currentTrack.name}
         </div>
-        {parsedLyrics.map((lyric, index) => (
+        
+        {parsedLyrics.map((line, lineIndex) => (
           <div
-            key={index}
-            className={`
-            mb-4 transition-all duration-300 ease-in-out
-            ${
-              index === currentLyricIndex
-                ? "text-white-500 font-bold text-xl"
-                : "text-gray-300 text-base"
-            }
-          `}
-            style={{ fontSize: isMobile ? "1rem" : "1.5rem" }}
+            key={lineIndex}
+            className={`mb-4 transition-opacity duration-300 ${
+              lineIndex === currentPosition.lineIndex ? "opacity-100" : "opacity-50"
+            }`}
+            style={{ fontSize: isMobile ? "1rem" : "1.25rem" }}
           >
-            {lyric.text}
+            {line.words.map((word, wordIndex) => (
+              <span
+                key={wordIndex}
+                className={`transition-colors duration-300 ${
+                  lineIndex === currentPosition.lineIndex &&
+                  wordIndex <= currentPosition.charIndex
+                    ? "text-white font-bold"
+                    : "text-gray-400"
+                }`}
+              >
+                {word.text}
+              </span>
+            ))}
           </div>
         ))}
       </div>
