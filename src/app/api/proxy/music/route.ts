@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
   try {
     // Decode the URL (ensure it’s properly decoded)
     const parsedUrl = decodeURIComponent(url);
-    let  targetUrl = parsedUrl.toString();
+    const targetUrl = parsedUrl.toString();
 
     // Fetch the audio file
     const response = await fetch(targetUrl);
