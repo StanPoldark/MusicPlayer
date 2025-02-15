@@ -10,8 +10,11 @@ export async function GET(req: NextRequest) {
   try {
     // Decode the URL (ensure it’s properly decoded)
     const parsedUrl = decodeURIComponent(url);
-    const targetUrl = parsedUrl.toString();
+    let  targetUrl = parsedUrl.toString();
 
+    if (targetUrl.startsWith("http://")) {
+      targetUrl = targetUrl.replace("http://", "https://");
+    }
     // Fetch the audio file
     const response = await fetch(targetUrl);
 
