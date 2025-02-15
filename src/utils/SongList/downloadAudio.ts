@@ -7,8 +7,10 @@ function DownloadAudio(audioInfo: any) {
   // 检查 audioId 的有效性
   if (typeof audioId === 'number' && audioId > 0) {
     getSongUrls([audioId]).then(({ data }) => {
-      const url = data[0].url;
-
+      let url = data[0].url;
+      if (url.startsWith("http://")) {
+        url = url.replace("http://", "https://");
+      }
       axios({
         url,
         method: 'GET',
