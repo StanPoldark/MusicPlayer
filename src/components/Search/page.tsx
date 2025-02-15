@@ -209,7 +209,7 @@ const MusicSearch: React.FC = () => {
         </div>
       ) : (
         <List
-          className="trackList"
+          className=""
           itemLayout="horizontal"
           dataSource={searchResults}
           locale={{ emptyText: "暂无搜索结果" }}
