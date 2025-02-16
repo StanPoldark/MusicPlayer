@@ -125,7 +125,6 @@ const MusicSearch: React.FC = () => {
         // 如果歌曲不可用，则提示用户
         if (!songAvailableData.success) {
           alert("抱歉，由于版权限制，此歌曲不可播放")
-          message.error("抱歉，由于版权限制，此歌曲不可播放");
           return;
         }
         // 更新歌曲对象
@@ -143,7 +142,6 @@ const MusicSearch: React.FC = () => {
       } catch (error) {
         // 如果获取歌曲URL出错，则打印错误信息并提示用户
         console.error("获取歌曲URL错误:", error);
-        message.error("加载歌曲失败");
       }
     },
     [dispatch, storedTracks]
@@ -159,7 +157,6 @@ const MusicSearch: React.FC = () => {
         // 如果歌曲不可用，则提示用户
         if (!songAvailableData.success) {
           alert("抱歉，由于版权限制，此歌曲不可添加")
-          message.error("抱歉，由于版权限制，此歌曲不可添加");
           return;
         }
 
@@ -177,7 +174,6 @@ const MusicSearch: React.FC = () => {
       } catch (error) {
         // 如果添加歌曲到播放列表出错，则打印错误信息并提示用户
         console.error("添加歌曲到播放列表错误:", error);
-        message.error("添加歌曲失败");
       }
     },
     [dispatch]
