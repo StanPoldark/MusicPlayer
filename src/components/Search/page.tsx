@@ -49,7 +49,7 @@ const MusicSearch: React.FC = () => {
       // 如果搜索结果存在且为数组，则处理搜索结果
       if (res?.result.songs && Array.isArray(res.result.songs)) {
         // 将搜索结果转换为 Track 类型
-        let searchTracks: Track[] = res.result.songs.map((song: any) => ({
+          const searchTracks: Track[] = res.result.songs.map((song: any) => ({
           name: song.name,
           id: song.id,
           ar: song.artists.map((artist: any) => artist.name).join(", "),
@@ -115,6 +115,7 @@ const MusicSearch: React.FC = () => {
       
       return updatedSongList;
     } catch (error) {
+      console.error("获取歌曲URL失败:", error);
       message.error("获取歌曲URL失败");
       return songList; // 返回原始列表，不含URL
     }
@@ -178,6 +179,7 @@ const MusicSearch: React.FC = () => {
         message.success(`正在播放: ${track.name}`);
       } catch (error) {
         // 如果获取歌曲URL出错，则打印错误信息并提示用户
+        console.error("获取歌曲失败:", error);
         message.error("获取歌曲失败，请重试");
       } finally {
         // 清除处理状态
