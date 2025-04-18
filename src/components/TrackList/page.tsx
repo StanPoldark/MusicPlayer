@@ -54,6 +54,7 @@ const TrackList: React.FC = () => {
   );
   const { userInfo } = useAppSelector((state) => state.login);
   const { trackLists } = useAppSelector((state) => state.tracks);
+  const { playlist: reduxPlaylist } = useAppSelector((state) => state.musicPlayer);
 
   // State declarations
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -64,6 +65,7 @@ const TrackList: React.FC = () => {
   const [currentPlaylistId, setCurrentPlaylistId] = useState<number | null>(null);
   const [error, setError] = useState<FetchError | null>(null);
   const [storedTracks, setStoredTracks] = useState<Track[]>([]);
+  const [processingTrackId, setProcessingTrackId] = useState<number | null>(null);
 
   // 获取用户歌单列表
   const fetchUserMusicList = useCallback(async (userId: string) => {
@@ -177,35 +179,41 @@ const TrackList: React.FC = () => {
     
   // 获取歌曲的 URL
   const getSongsWithUrls = async (songList: any[]) => {
-    // 获取所有歌曲的 ID
-    const songIds = songList.map((song) => song.id);
+    try {
+      // 获取所有歌曲的 ID
+      const songIds = songList.map((song) => song.id);
 
-    // 获取歌曲的 URL
-    const response = await getSongUrls(songIds); // 调用 getSongUrls 获取歌曲数据
+      // 获取歌曲的 URL
+      const response = await getSongUrls(songIds); // 调用 getSongUrls 获取歌曲数据
 
-    // 检查返回的数据是否有效
-    if (response.code !== 200 || !response.data) {
-      throw new Error("Failed to fetch song URLs");
+      // 检查返回的数据是否有效
+      if (response.code !== 200 || !response.data) {
+        throw new Error("Failed to fetch song URLs");
+      }
+
+      // 将 URL 添加到歌曲对象中
+      const updatedSongList = songList.map((song) => {
+        const songData = response.data.find((data: any) => data.id === song.id);
+
+        // 如果 URL 存在并且有效（非 null 或 404），使用它，否则使用空字符串
+        const songUrl =
+          songData && songData.url
+            ? `/api/proxy/music?url=${encodeURIComponent(songData.url)}`
+            : "";
+
+        return {
+          ...song,
+          url: songUrl,
+          time: songData?.time || 0,
+        };
+      });
+
+      return updatedSongList;
+    } catch (error) {
+      console.error("Error fetching song URLs:", error);
+      message.error("获取歌曲URL失败");
+      return songList; // 返回原始列表，不含URL
     }
-
-    // 将 URL 添加到歌曲对象中
-    const updatedSongList = songList.map((song) => {
-      const songData = response.data.find((data: any) => data.id === song.id);
-
-      // 如果 URL 存在并且有效（非 null 或 404），使用它，否则使用空字符串
-      const songUrl =
-        songData && songData.url
-          ? `/api/proxy/music?url=${encodeURIComponent(songData.url)}`
-          : "";
-
-      return {
-        ...song,
-        url: songUrl,
-        time: songData?.time || 0,
-      };
-    });
-
-    return updatedSongList;
   };
 
   // 处理歌单点击事件
@@ -261,37 +269,44 @@ const TrackList: React.FC = () => {
   // 处理歌曲点击事件
   const handleSongClick = useCallback(
     async (track: Track) => {
-      // Prevent fetching if loading tracks
-      if (isLoadingTracks) return;
+      // Prevent fetching if loading tracks or this track is already processing
+      if (isLoadingTracks || processingTrackId === track.id) return;
+
+      // Check if track is already in Redux playlist
+      const trackInReduxPlaylist = reduxPlaylist.find(t => t.id === track.id);
+      if (trackInReduxPlaylist && trackInReduxPlaylist.lyric) {
+        // Track exists in Redux with lyrics, use it directly
+        dispatch(setCurrentTrack(trackInReduxPlaylist));
+        dispatch(addTrackToPlaylist({ from: "play", track: trackInReduxPlaylist }));
+        return;
+      }
 
       // Check if the track is already in the storedTracks array
       const existingTrack = storedTracks.find((t) => t.id === track.id);
-
       if (existingTrack) {
-        // Track already exists, dispatch it without re-fetching
+        // Track already exists in local state, dispatch it without re-fetching
         dispatch(setCurrentTrack(existingTrack));
         dispatch(addTrackToPlaylist({ from: "play", track: existingTrack }));
         return;
       }
 
       try {
-        // Set loading state
-        setIsLoadingTracks(true);
+        // Set processing state for this track
+        setProcessingTrackId(track.id);
 
         // Check song availability
         const songAvailableData = await checkSong(track.id);
-        const songLyric = await getlyric(track.id);
-
+        
         if (!songAvailableData.success) {
-          alert(
-            "Sorry, this song is not available due to copyright restrictions."
-          );
+          message.error("抱歉，由于版权限制，此歌曲不可播放");
           return;
         }
         
+        const songLyric = await getlyric(track.id);
+        
         const updatedTrack = {
           ...track,
-          lyric: songLyric.uncollected ?  "" : songLyric.lrc.lyric,
+          lyric: songLyric.uncollected ? "" : songLyric.lrc.lyric,
         };
 
         // Store the updated track in the state
@@ -300,14 +315,41 @@ const TrackList: React.FC = () => {
         // Dispatch the updated track
         dispatch(setCurrentTrack(updatedTrack));
         dispatch(addTrackToPlaylist({ from: "play", track: updatedTrack }));
+        message.success(`正在播放: ${track.name}`);
       } catch (error) {
         console.error("Error fetching song URL:", error);
+        message.error("获取歌曲失败，请重试");
       } finally {
-        setIsLoadingTracks(false);
+        setProcessingTrackId(null);
       }
     },
-    [dispatch, isLoadingTracks, storedTracks] // Add storedTracks as a dependency
+    [dispatch, isLoadingTracks, storedTracks, reduxPlaylist, processingTrackId]
   );
+
+  // Sync stored tracks with Redux playlist on mount and when Redux playlist changes
+  useEffect(() => {
+    // Update local storedTracks with tracks from Redux that have lyrics
+    const tracksWithLyrics = reduxPlaylist.filter(track => track.lyric);
+    if (tracksWithLyrics.length > 0) {
+      setStoredTracks(prev => {
+        const updatedTracks = [...prev];
+        
+        // Add or update tracks from Redux
+        tracksWithLyrics.forEach(reduxTrack => {
+          const existingIndex = updatedTracks.findIndex(t => t.id === reduxTrack.id);
+          if (existingIndex >= 0) {
+            // Update existing track
+            updatedTracks[existingIndex] = reduxTrack;
+          } else {
+            // Add new track
+            updatedTracks.push(reduxTrack);
+          }
+        });
+        
+        return updatedTracks;
+      });
+    }
+  }, [reduxPlaylist]);
 
   // 组件挂载时获取用户歌单列表
   useEffect(() => {
@@ -344,14 +386,18 @@ const handleBackToList = useCallback(() => {
   // 添加歌曲到歌单
   const handleAddToPlaylist = useCallback(
     async (track: Track) => {
+      // Prevent actions if this track is currently being processed
+      if (processingTrackId === track.id) return;
+
       try {
+        // Set processing state for this track
+        setProcessingTrackId(track.id);
+        
         // Check song availability
         const songAvailableData = await checkSong(track.id);
 
         if (!songAvailableData.success) {
-          alert(
-            "Sorry, this song is not available due to copyright restrictions."
-          );
+          message.error("抱歉，由于版权限制，此歌曲不可添加");
           return;
         }
 
@@ -362,15 +408,26 @@ const handleBackToList = useCallback(() => {
           lyric: songLyric.lrc.lyric,
         };
 
+        // Add to local stored tracks
+        setStoredTracks(prev => {
+          const exists = prev.some(t => t.id === updatedTrack.id);
+          if (!exists) {
+            return [...prev, updatedTrack];
+          }
+          return prev;
+        });
+
         // Dispatch action to add track to playlist
         dispatch(addTrackToPlaylist({ from: "add", track: updatedTrack }));
-        alert(`Added ${track.name} to playlist`);
+        message.success(`已添加 ${track.name} 到播放列表`);
       } catch (error) {
         console.error("Error adding track to playlist:", error);
-        alert("Failed to add track to playlist");
+        message.error("添加到播放列表失败");
+      } finally {
+        setProcessingTrackId(null);
       }
     },
-    [dispatch]
+    [dispatch, processingTrackId]
   );
 
   // 刷新歌单列表
@@ -452,7 +509,10 @@ const listContent = useMemo(() => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-40">
-        <Spin size="large" />
+        <div className="text-center">
+          <Spin size="large" />
+          <div className="mt-2 text-white">加载中...</div>
+        </div>
       </div>
     );
   }
@@ -474,7 +534,10 @@ const listContent = useMemo(() => {
       <div className="relative w-full h-full">
         {isLoadingTracks && (
           <div className="absolute inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-            <Spin size="large" />
+            <div className="text-center">
+              <Spin size="large" />
+              <div className="mt-2 text-white">加载歌曲中...</div>
+            </div>
           </div>
         )}
         <List
@@ -496,25 +559,31 @@ const listContent = useMemo(() => {
               <List.Item.Meta
                 title={<span className="text-white">{track.name}</span>}
               />
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleAddToPlaylist(track);
-                }}
-                className="text-white hover:text-green-500 mx-2"
-              >
-                <LucidePlus size={20} />
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  DownloadAudio(track);
-                }}
-                className="text-white hover:text-blue-500"
-                aria-label="Download track"
-              >
-                <VerticalAlignBottomOutlined size={20} />
-              </button>
+              {processingTrackId === track.id ? (
+                <Spin size="small" style={{ marginRight: '12px' }} />
+              ) : (
+                <>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleAddToPlaylist(track);
+                    }}
+                    className="text-white hover:text-green-500 mx-2"
+                  >
+                    <LucidePlus size={20} />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      DownloadAudio(track);
+                    }}
+                    className="text-white hover:text-blue-500"
+                    aria-label="Download track"
+                  >
+                    <VerticalAlignBottomOutlined size={20} />
+                  </button>
+                </>
+              )}
             </List.Item>
           )}
           style={{
@@ -535,7 +604,10 @@ const listContent = useMemo(() => {
     <div className="relative w-full h-full">
       {loadingPlaylistId && (
         <div className="absolute inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-          <Spin size="large" />
+          <div className="text-center">
+            <Spin size="large" />
+            <div className="mt-2 text-white">加载歌单中...</div>
+          </div>
         </div>
       )}
       <List
@@ -577,6 +649,7 @@ const listContent = useMemo(() => {
   currentPlaylistId,
   isLoadingTracks,
   loadingPlaylistId,
+  processingTrackId,
   handleSongClick,
   handleAddToPlaylist,
   handleItemClick

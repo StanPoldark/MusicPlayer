@@ -1,0 +1,82 @@
+body.fullscreen-active {
+    .layout {
+      .lyrics-container {
+        top: 10%;
+        right: 10%;
+        left: auto;
+        height: 80%;
+      }
+    }
+  }
+
+.lyr-container {
+  display: flex;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+.lyr-container-picUrl {
+  flex: 0 0 40%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  
+  img {
+    max-height: 100%;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    object-fit: contain;
+  }
+}
+
+.lyrics-container {
+  height: 100%;
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  scroll-behavior: smooth;
+}
+
+/* Fullscreen mode adjustments */
+body.fullscreen-active {
+  .layout {
+    .lyr-container {
+      padding: 30px;
+    }
+
+    .lyr-container-picUrl {
+      flex: 0 0 45%;
+      
+      img {
+        max-height: 80vh;
+      }
+    }
+    
+    .lyrics-container {
+      padding: 40px 50px;
+      font-size: 1.2em;
+    }
+  }
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .lyr-container {
+    flex-direction: column;
+  }
+  
+  .lyr-container-picUrl {
+    flex: 0 0 30%;
+    padding: 10px;
+    
+    img {
+      max-height: 180px;
+    }
+  }
+  
+  .lyrics-container {
+    padding: 10px;
+  }
+}

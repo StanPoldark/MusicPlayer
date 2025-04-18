@@ -33,21 +33,21 @@ const Loading: React.FC<LoadingProps> = ({ initState }) => {
 
   useEffect(() => {
     if (progress === 1 || !initState) return;
-
+  
     if (initState) {
       const finishLoading = async () => {
         nprogress.done();
         setProgress(1);
-
+  
         setMaskClassName("loading_mask done");
         await new Promise((resolve) => setTimeout(resolve, 1600));
-
+  
         setMaskClassName("loading_mask hidden");
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-
+        // 增加等待时间，确保过渡完全结束
+        await new Promise((resolve) => setTimeout(resolve, 1500)); 
         setRemoveMask(true);
       };
-
+  
       finishLoading();
     }
   }, [progress, initState]);

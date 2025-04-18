@@ -24,28 +24,81 @@ import {
   previousTrack,
   setVolume,
   toggleRepeatMode,
-  Interacted
+  Interacted,
 } from "@/redux/modules/musicPlayer/reducer";
 import { useAudio } from "@/contexts/AudioContext";
 import "./index.scss";
 import AudioSpectrum from "@/components/Spectrum/page";
 import { Slider } from "antd";
+import { ArrowsAltOutlined, ShrinkOutlined } from "@ant-design/icons";
+import mediaQuery from "@/utils/mediaQuery";
 
-const MusicPlayer: React.FC = () => {
+// Create a fullscreen context
+const FullscreenContext = React.createContext<{
+  isFullscreen: boolean;
+  toggleFullscreen: () => void;
+}>({
+  isFullscreen: false,
+  toggleFullscreen: () => {},
+});
+
+// Export the context for use in other components
+export const useFullscreen = () => React.useContext(FullscreenContext);
+
+// Export the provider component
+export const FullscreenProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const toggleFullscreen = useCallback(() => {
+    setIsFullscreen((prev) => !prev);
+    // Add fullscreen-active class to body when fullscreen is active
+    if (!isFullscreen) {
+      document.body.classList.add("fullscreen-active");
+    } else {
+      document.body.classList.remove("fullscreen-active");
+    }
+  }, [isFullscreen]);
+
+  return (
+    <FullscreenContext.Provider value={{ isFullscreen, toggleFullscreen }}>
+      {children}
+    </FullscreenContext.Provider>
+  );
+};
+
+const MusicPlayer: React.FC<{ fullScreen: () => void }> = ({ fullScreen }) => {
   const dispatch = useAppDispatch();
   // 从redux中获取当前播放的曲目、是否播放、音量、重复模式、用户是否交互
-  const { currentTrack, isPlaying, volume, repeatMode,hasUserInteracted } = useAppSelector(
-    (state) => state.musicPlayer
-  );
-  const { setAudio} = useAudio();
+  const { currentTrack, isPlaying, volume, repeatMode, hasUserInteracted } =
+    useAppSelector((state) => state.musicPlayer);
+  const { setAudio } = useAudio();
   const audioRef = useRef<HTMLAudioElement>(null);
-  const [audioContext, setLocalAudioContext] = useState<AudioContext | null>(null);
+  const [audioContext, setLocalAudioContext] = useState<AudioContext | null>(
+    null
+  );
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [isVolumeVisible, setIsVolumeVisible] = useState(false);
   const volumeContainerRef = useRef<HTMLDivElement>(null);
-  const [node,setNode] = useState<MediaElementAudioSourceNode | null>(null);
+  const [node, setNode] = useState<MediaElementAudioSourceNode | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const isMobile = mediaQuery("(max-width: 768px)");
+
+  // Fullscreen toggle function
+  const toggleFullscreen = () => {
+    setIsFullscreen((prev) => !prev);
+    fullScreen();
+    // Add or remove the fullscreen-active class to the body
+    if (!isFullscreen) {
+      document.body.classList.add("fullscreen-active");
+    } else {
+      document.body.classList.remove("fullscreen-active");
+    }
+  };
+
   // Memoized time formatting function
   const formatTime = useCallback((time: number) => {
     const minutes = Math.floor(time / 60);
@@ -72,12 +125,13 @@ const MusicPlayer: React.FC = () => {
 
   const handlePlayClick = useCallback(() => {
     if (!audioRef.current) return;
-    if(!hasUserInteracted) {
+    if (!hasUserInteracted) {
       dispatch(Interacted());
     }
     if (!audioContext) {
       // Initialize AudioContext
-      const context = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const context = new (window.AudioContext ||
+        (window as any).webkitAudioContext)();
       setLocalAudioContext(context);
       const node = context.createMediaElementSource(audioRef.current);
       setNode(node);
@@ -97,9 +151,9 @@ const MusicPlayer: React.FC = () => {
   }, [audioContext, isPlaying, dispatch]);
 
   // Audio source and playback management
-   useEffect(() => {
+  useEffect(() => {
     if (!audioRef.current || !currentTrack) return;
-    
+
     // Set the audio source directly using currentTrack.url
     audioRef.current.src = currentTrack.url;
     setAudio(audioRef.current);
@@ -156,7 +210,6 @@ const MusicPlayer: React.FC = () => {
   }, [hasUserInteracted, isDragging, dispatch, repeatMode]);
 
   const handleVolumeChange = useCallback(
-
     (newVolume: number) => {
       const safeVolume = Math.min(Math.max(newVolume, 0), 1);
       audioRef.current.volume = safeVolume;
@@ -164,10 +217,9 @@ const MusicPlayer: React.FC = () => {
     },
     [dispatch]
   );
-  
+
   const handleProgressChange = useCallback((newProgress: number) => {
     if (audioRef.current) {
-
       setIsDragging(true);
       setProgress(newProgress);
     }
@@ -178,14 +230,14 @@ const MusicPlayer: React.FC = () => {
       audioRef.current.currentTime = newValue;
     }
     setIsDragging(false);
-    return true
+    return true;
   }, []);
 
   if (!currentTrack) return null;
 
   return (
     <div className="w-[80%] rounded-lg mx-auto">
-        <AudioSpectrum
+      <AudioSpectrum
         audioContext={audioContext}
         webAudioSourceNode={node}
         hasUserInteracted={hasUserInteracted}
@@ -197,7 +249,7 @@ const MusicPlayer: React.FC = () => {
           ref={volumeContainerRef}
         >
           {/* Volume control */}
-          <div className="relative">
+          <div className="relative h-8">
             <button
               onClick={() => setIsVolumeVisible(!isVolumeVisible)}
               className="text-white hover:text-blue-500 transition-colors relative"
@@ -208,7 +260,11 @@ const MusicPlayer: React.FC = () => {
             {isVolumeVisible && (
               <div
                 className="absolute  bottom-full transition-opacity duration-200 ease-in-out white_slider"
-                style={{ opacity: isVolumeVisible ? 1 : 0, height: "3rem", marginBottom: "1rem" }}
+                style={{
+                  opacity: isVolumeVisible ? 1 : 0,
+                  height: "3rem",
+                  marginBottom: "1rem",
+                }}
               >
                 <Slider
                   min={0}
@@ -223,26 +279,48 @@ const MusicPlayer: React.FC = () => {
             )}
           </div>
 
-          <button onClick={() => dispatch(previousTrack())} className="playButton">
+          <button
+            onClick={() => dispatch(previousTrack())}
+            className="playButton"
+          >
             <SkipBack size={32} />
           </button>
 
           <button onClick={handlePlayClick} className="playButton">
-            {isPlaying ? <Pause /> : <Play />}
+            {isPlaying ? <Pause size={32} /> : <Play size={32} />}
           </button>
 
           <button onClick={() => dispatch(nextTrack())} className="playButton">
             <SkipForward size={32} />
           </button>
 
-          {/* New Repeat Button */}
-          <button
-            onClick={() => dispatch(toggleRepeatMode())}
-            className={`playButton ${repeatMode === "off" ? "text-gray-400" : "text-blue-500"}`}
-            title={`Repeat Mode: ${repeatMode}`}
-          >
-            <RepeatIcon size={32} />
-          </button>
+          <div className="button-container">
+            <div className="button-group">
+              <button
+                onClick={() => dispatch(toggleRepeatMode())}
+                className={`playButton ${
+                  repeatMode === "off" ? "text-gray-400" : "text-blue-500"
+                }`}
+                title={`Repeat Mode: ${repeatMode}`}
+              >
+                <RepeatIcon size={32} />
+              </button>
+              {!isMobile && <div className="divider">/</div>}
+              <button
+                onClick={toggleFullscreen}
+                className="playButton"
+                title={isFullscreen ? "Exit Full Screen" : "Full Screen Mode"}
+              >
+                {isMobile ? (
+                  isFullscreen ? (
+                    <ShrinkOutlined className="text-[32px] text-blue-500" />
+                  ) : null 
+                ) : (
+                  <ArrowsAltOutlined className="text-[32px]" />
+                )}
+              </button>
+            </div>
+          </div>
         </div>
 
         <div className="mt-1 mb-1">

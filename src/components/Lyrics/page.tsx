@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useAppSelector } from "@/hooks/hooks";
 import mediaQuery from "@/utils/mediaQuery";
+import "./index.scss";
 
 // 定义歌词行和字符接口
 interface LyricWord {
@@ -15,7 +16,7 @@ interface LyricLine {
   words: LyricWord[];
 }
 
-const LyricsDisplay: React.FC = () => {
+const LyricsDisplay: React.FC<{isFullscreen:boolean}> = ({isFullscreen}) => {
   const isMobile = mediaQuery("(max-width: 768px)");
   const { currentTrack, isPlaying } = useAppSelector(
     (state) => state.musicPlayer
@@ -27,8 +28,18 @@ const LyricsDisplay: React.FC = () => {
   }>({ lineIndex: -1, charIndex: -1 });
   const lyricsContainerRef = useRef<HTMLDivElement>(null);
 
+
+  useEffect(() => {
+    if (currentTrack?.picUrl) {
+      const img = new Image();
+      img.src = currentTrack.picUrl;
+    }
+  }, [currentTrack?.picUrl]);
+
   // 解析歌词
   useEffect(() => {
+    console.log(currentTrack.picUrl);
+    
     if (!currentTrack?.lyric) {
       setParsedLyrics([]);
       return;
@@ -148,23 +159,26 @@ const LyricsDisplay: React.FC = () => {
     );
   }
  return (
+  <div className="lyr-container flex" >
+    {isFullscreen && 
+    <div className="lyr-container-picUrl">
+      <img src={currentTrack.picUrl || "pic.jpg" } className="max-w-md" alt="" />
+    </div>
+    }
     <div className="relative w-full h-full">
+      {isFullscreen && <div className="text-3xl font-bold text-white mb-6 text-center">
+          {currentTrack.name}
+        </div>} 
       <div
         ref={lyricsContainerRef}
-        className="overflow-y-auto text-center p-4"
+        className="lyrics-container overflow-y-auto text-center p-4"
         style={{
-          height: "100%",
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          scrollBehavior: "smooth",
+
         }}
       >
-        <div className="text-xl font-bold text-white mb-6">
+       {!isFullscreen && <div className="text-xl font-bold text-white mb-6">
           {currentTrack.name}
-        </div>
+        </div>} 
         
         {parsedLyrics.map((line, lineIndex) => (
           <div
@@ -172,7 +186,7 @@ const LyricsDisplay: React.FC = () => {
             className={`mb-4 transition-opacity duration-300 ${
               lineIndex === currentPosition.lineIndex ? "opacity-100" : "opacity-50"
             }`}
-            style={{ fontSize: isMobile ? "1rem" : "1.25rem" }}
+            style={{ fontSize: isMobile ? "1rem" : "1.5rem",paddingTop:isFullscreen ? "1rem" : "0rem" }}
           >
             {line.words.map((word, wordIndex) => (
               <span
@@ -191,6 +205,8 @@ const LyricsDisplay: React.FC = () => {
         ))}
       </div>
     </div>
+    </div>
+    
   );
 };
 

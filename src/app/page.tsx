@@ -26,6 +26,7 @@ export default function HomePage() {
   const [activeDrawer, setActiveDrawer] = useState<string | null>(null);
   const collapseParentRef = useRef<HTMLDivElement>(null);
   const [contentHeight, setContentHeight] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const calculateContentHeight = () => {
     const parent = collapseParentRef.current;
@@ -155,10 +156,15 @@ export default function HomePage() {
     setActiveDrawer(key);
   };
 
+  const fullScreen = () => {
+    setIsFullscreen(!isFullscreen);
+  };
+
   return (
     <AudioProvider>
       <SnowfallBackground />
       <div
+        className="mainbox"
         style={{
           margin: "20px",
           width: "80%",
@@ -173,8 +179,8 @@ export default function HomePage() {
             >
               <Col span={24} style={{ height: "100%" }}>
                 <div className="box" style={{ height: "100%", width: "100%" }}>
-                  <LyricsDisplay />
-                  <MusicPlayer />
+                  <LyricsDisplay isFullscreen={isFullscreen} />
+                  <MusicPlayer fullScreen={fullScreen} />
                 </div>
               </Col>
             </Row>
@@ -222,8 +228,8 @@ export default function HomePage() {
             </Col>
             <Col span={12} style={{ height: "100%" }}>
               <div className="box" style={{ height: "100%" }}>
-                <LyricsDisplay />
-                <MusicPlayer />
+                <LyricsDisplay isFullscreen={isFullscreen} />
+                <MusicPlayer fullScreen={fullScreen} />
               </div>
             </Col>
             <Col span={6} style={{ height: "100%" }} ref={collapseParentRef}>

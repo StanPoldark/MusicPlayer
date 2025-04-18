@@ -10,6 +10,7 @@ import mediaQuery from "@/utils/mediaQuery"
 import Loading from "@/components/Loading/page";
 import DynamicBackground from '@/components/DynamicBackground/page';
 import { useState, useEffect } from "react";
+import { FullscreenProvider } from '@/components/MusicPlayer/page';
 
 // Functional component layout
 const Layout = ({ children }: any) => {
@@ -22,45 +23,47 @@ const Layout = ({ children }: any) => {
 
   return (
     <Provider store={store}>
-    <html>
-      <body>
-      <Loading initState={initState} />
-      <DynamicBackground />
-      <TransitionGroup className='main-wrapper animate__animated animate__fadeIn'>
-        <CSSTransition
-          timeout={3000}
-          classNames="page-transition" // Using classNames for transitions
-        >
-          <div className='layout'>
-            {/* Header */}
-            <div className="header">
-              {/* Add Header content here */}
-            </div>
-            
-            {/* Main Content Area with route transitions */}
-            <TransitionGroup
-              className='middle_content'
-              childFactory={(child: any) => React.cloneElement(child, { classNames: 'page' })}
+      <FullscreenProvider>
+        <html>
+          <body>
+          <Loading initState={initState} />
+          <DynamicBackground />
+          <TransitionGroup className='main-wrapper animate__animated animate__fadeIn'>
+            <CSSTransition
+              timeout={3000}
+              classNames="page-transition" // Using classNames for transitions
             >
-              <CSSTransition
-                timeout={800}
-                classNames="page" // Define your CSS classes for transitions
-              >
+              <div className='layout'>
+                {/* Header */}
+                <div className="header">
+                  {/* Add Header content here */}
+                </div>
                 
-                {children}
-              </CSSTransition>
-            </TransitionGroup>
-            
-            {/* Footer */}
-            <div className= {isMobile ? "" : "footer"}>
-              {/* Add Footer content here */}
-            </div>
-          </div>
-        </CSSTransition>
-      </TransitionGroup>
-      
-      </body>
-    </html>
+                {/* Main Content Area with route transitions */}
+                <TransitionGroup
+                  className='middle_content'
+                  childFactory={(child: any) => React.cloneElement(child, { classNames: 'page' })}
+                >
+                  <CSSTransition
+                    timeout={800}
+                    classNames="page" // Define your CSS classes for transitions
+                  >
+                    
+                    {children}
+                  </CSSTransition>
+                </TransitionGroup>
+                
+                {/* Footer */}
+                <div className= {isMobile ? "" : "footer"}>
+                  {/* Add Footer content here */}
+                </div>
+              </div>
+            </CSSTransition>
+          </TransitionGroup>
+          
+          </body>
+        </html>
+      </FullscreenProvider>
     </Provider>
   );
 };

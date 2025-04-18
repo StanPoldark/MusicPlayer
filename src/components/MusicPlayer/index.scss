@@ -2,6 +2,99 @@
   background-color: transparent;
   color: white;
   border: none;
+  transition: transform 0.3s ease;
+}
+
+.button-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.button-group {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.button-group:hover .playButton:first-child {
+  transform: translateX(-10px);
+}
+
+.button-group:hover .playButton:last-child {
+  transform: translateX(10px);
+}
+
+.divider {
+  margin: 0 3px;
+  opacity: 0.7;
+  font-size: 20px;
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.button-group:hover .divider {
+  margin: 0 10px;
+  opacity: 1;
+}
+
+/* Fullscreen mode styles */
+body.fullscreen-active {
+  .layout {
+    /* Apply styles to the main layout in fullscreen mode */
+    .middle_content {
+      width: 100%;
+      max-width: 100%;
+      padding: 0;
+      margin: 0;
+      height: 100%;
+    }
+    
+    /* Hide the sidebars in fullscreen mode */
+    [class*="ant-col"]:first-child, 
+    [class*="ant-col"]:last-child {
+      display: none !important;
+    }
+    
+    /* Make the center column take full width */
+    [class*="ant-col"]:nth-child(2) {
+      width: 100% !important;
+      max-width: 100% !important;
+      flex: 0 0 100% !important;
+    }
+    .mainbox {
+      height: 100% !important;
+      width: 100% !important;
+    }
+    /* Adjust main content box in fullscreen mode */
+    .box {
+      height: 100vh !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      padding: 20px !important;
+      border-radius: 0 !important;
+      transition: all 0.3s ease;
+    }
+
+  }
+
+  /* Mobile specific adjustments */
+  @media (max-width: 768px) {
+    [class*="ant-col"] {
+      width: 100% !important;
+      max-width: 100% !important;
+      flex: 0 0 100% !important;
+    }
+    
+    /* Hide bottom navigation in fullscreen mode on mobile */
+    .bottom-navigation {
+      display: none !important;
+    }
+    
+    .box {
+      padding-bottom: 0 !important;
+    }
+  }
 }
 
 .white_slider {

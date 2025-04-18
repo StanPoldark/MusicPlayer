@@ -53,6 +53,14 @@ export const search = async (keywords: string): Promise<any> => {
   );
 };
 
+export const getSongsDetail = async (ids: number[]): Promise<any> => {
+  return handleApiCall(() => 
+    apiClient.get('/song/detail', {
+      params: { ids: ids.join(',') }
+    })
+  );
+};
+
 
 export const cloud = async (): Promise<any> => {
   return handleApiCall(() => 
