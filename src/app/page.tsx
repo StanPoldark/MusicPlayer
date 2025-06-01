@@ -216,14 +216,18 @@ export default function HomePage() {
           <Row gutter={0} style={{ height: "100%" }}>
             <Col span={6}>
               <Row style={{ height: "20%", marginBottom: "1%" }}>
-                <div className="box" style={{ height: "100%" }}>
-                  <Login />
-                </div>
+                <Col span={24}>
+                  <div className="box" style={{ height: "100%" }}>
+                    <Login />
+                  </div>
+                </Col>
               </Row>
               <Row style={{ height: "79%" }}>
-                <div className="box" style={{ height: "100%" }}>
-                  <MusicSearch />
-                </div>
+                <Col span={24}>
+                  <div className="box" style={{ height: "100%" }}>
+                    <MusicSearch />
+                  </div>
+                </Col>
               </Row>
             </Col>
             <Col span={12} style={{ height: "100%" }}>

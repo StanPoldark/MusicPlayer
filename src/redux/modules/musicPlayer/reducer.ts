@@ -28,8 +28,12 @@ interface MusicPlayerState {
   playlist: Track[];
   spectrumData: number[];
   isAnalyzing: boolean;
-  repeatMode: RepeatMode; // New repeat mode state
-  hasUserInteracted:boolean;
+  repeatMode: RepeatMode;
+  hasUserInteracted: boolean;
+  currentTime: number; // 当前播放时间
+  duration: number; // 歌曲总时长
+  isLoading: boolean; // 音频加载状态
+  playbackHistory: { [trackId: number]: number }; // 播放历史记录（保存每首歌的播放位置）
 }
 
 const initialState: MusicPlayerState = {
@@ -40,7 +44,11 @@ const initialState: MusicPlayerState = {
   spectrumData: new Array(64).fill(0),
   isAnalyzing: false,
   repeatMode: 'off',
-  hasUserInteracted:false
+  hasUserInteracted: false,
+  currentTime: 0,
+  duration: 0,
+  isLoading: false,
+  playbackHistory: {}
 };
 
 // 创建 Slice
@@ -49,7 +57,15 @@ const musicPlayerSlice = createSlice({
   initialState,
   reducers: {
     setCurrentTrack: (state, action: PayloadAction<Track>) => {
+      // 保存当前歌曲的播放位置
+      if (state.currentTrack && state.currentTime > 0) {
+        state.playbackHistory[state.currentTrack.id] = state.currentTime;
+      }
+      
       state.currentTrack = action.payload;
+      // 恢复新歌曲的播放位置（如果有的话）
+      state.currentTime = state.playbackHistory[action.payload.id] || 0;
+      state.isLoading = true;
     },
     togglePlay: (state) => {
       state.isPlaying = !state.isPlaying;
@@ -63,32 +79,74 @@ const musicPlayerSlice = createSlice({
     Interacted: (state) => {
       state.hasUserInteracted = true;
     },
-    // Update nextTrack to respect repeat modes
+    // 设置当前播放时间
+    setCurrentTime: (state, action: PayloadAction<number>) => {
+      state.currentTime = action.payload;
+      // 实时更新播放历史
+      if (state.currentTrack) {
+        state.playbackHistory[state.currentTrack.id] = action.payload;
+      }
+    },
+    // 设置歌曲总时长
+    setTrackDuration: (state, action: PayloadAction<number>) => {
+      state.duration = action.payload;
+    },
+    // 设置加载状态
+    setLoading: (state, action: PayloadAction<boolean>) => {
+      state.isLoading = action.payload;
+    },
+    // 清除播放历史记录
+    clearPlaybackHistory: (state, action: PayloadAction<number | undefined>) => {
+      if (action.payload) {
+        // 清除特定歌曲的播放历史
+        delete state.playbackHistory[action.payload];
+      } else {
+        // 清除所有播放历史
+        state.playbackHistory = {};
+      }
+    },
+    // Update nextTrack to respect repeat modes and save position
     nextTrack: (state) => {
+      // 保存当前歌曲的播放位置
+      if (state.currentTrack && state.currentTime > 0) {
+        state.playbackHistory[state.currentTrack.id] = state.currentTime;
+      }
+
       const currentIndex = state.playlist.findIndex(
         track => track.id === state.currentTrack?.id
       );
 
       if (state.repeatMode === 'track' && state.currentTrack) {
         // If in track repeat mode, just restart the current track
+        state.currentTime = 0;
         state.isPlaying = true;
         return;
       }
 
       // Default playlist navigation
       const nextIndex = (currentIndex + 1) % state.playlist.length;
-      state.currentTrack = state.playlist[nextIndex];
+      const nextTrack = state.playlist[nextIndex];
+      state.currentTrack = nextTrack;
+      // 恢复下一首歌的播放位置
+      state.currentTime = state.playbackHistory[nextTrack.id] || 0;
       state.isPlaying = true;
+      state.isLoading = true;
     },
 
-    // Similar modification for previous track if needed
+    // Similar modification for previous track
     previousTrack: (state) => {
+      // 保存当前歌曲的播放位置
+      if (state.currentTrack && state.currentTime > 0) {
+        state.playbackHistory[state.currentTrack.id] = state.currentTime;
+      }
+
       const currentIndex = state.playlist.findIndex(
         track => track.id === state.currentTrack?.id
       );
 
       if (state.repeatMode === 'track' && state.currentTrack) {
         // If in track repeat mode, just restart the current track
+        state.currentTime = 0;
         state.isPlaying = true;
         return;
       }
@@ -96,8 +154,12 @@ const musicPlayerSlice = createSlice({
       const prevIndex = currentIndex > 0 
         ? currentIndex - 1 
         : state.playlist.length - 1;
-      state.currentTrack = state.playlist[prevIndex];
+      const prevTrack = state.playlist[prevIndex];
+      state.currentTrack = prevTrack;
+      // 恢复上一首歌的播放位置
+      state.currentTime = state.playbackHistory[prevTrack.id] || 0;
       state.isPlaying = true;
+      state.isLoading = true;
     },
 
     setVolume: (state, action: PayloadAction<number>) => {
@@ -125,27 +187,51 @@ const musicPlayerSlice = createSlice({
         
         // If it's a play action and track already exists, update the current track reference
         if (from === "play") {
+          // 保存当前歌曲的播放位置
+          if (state.currentTrack && state.currentTime > 0) {
+            state.playbackHistory[state.currentTrack.id] = state.currentTime;
+          }
           state.currentTrack = state.playlist[existingTrackIndex];
-          state.isPlaying = true;
+          // 恢复播放位置
+          state.currentTime = state.playbackHistory[track.id] || 0;
+          state.isLoading = true;
         }
       } else {
         // If track doesn't exist, add it to the playlist
         if (from === "play") {
+          // 保存当前歌曲的播放位置
+          if (state.currentTrack && state.currentTime > 0) {
+            state.playbackHistory[state.currentTrack.id] = state.currentTime;
+          }
           state.playlist.unshift(track); // 添加到头部
           state.currentTrack = track;
-          state.isPlaying = true;
+          state.currentTime = 0; // 新歌曲从头开始
+          state.isLoading = true;
         } else if (from === "add") {
           state.playlist.push(track); // 添加到尾部
         }
       }
     },
     removeTrackFromPlaylist: (state, action: PayloadAction<number>) => {
-      state.playlist = state.playlist.filter(track => track.id !== action.payload);
+      const trackId = action.payload;
+      
+      // 清除该歌曲的播放历史
+      delete state.playbackHistory[trackId];
+      
+      state.playlist = state.playlist.filter(track => track.id !== trackId);
       
       // If the removed track was the current track, select the first track in the playlist
-      if (state.currentTrack?.id === action.payload) {
-        state.currentTrack = state.playlist.length > 0 ? state.playlist[0] : null;
+      if (state.currentTrack?.id === trackId) {
+        if (state.playlist.length > 0) {
+          const newTrack = state.playlist[0];
+          state.currentTrack = newTrack;
+          state.currentTime = state.playbackHistory[newTrack.id] || 0;
+        } else {
+          state.currentTrack = null;
+          state.currentTime = 0;
+        }
         state.isPlaying = false;
+        state.isLoading = false;
       }
     },
     reorderPlaylist: (state, action: PayloadAction<{ sourceIndex: number; destinationIndex: number }>) => {
@@ -176,8 +262,12 @@ export const {
   addTrackToPlaylist,
   removeTrackFromPlaylist,
   reorderPlaylist,
-  toggleRepeatMode ,
-  Interacted
+  toggleRepeatMode,
+  Interacted,
+  setCurrentTime,
+  setTrackDuration,
+  setLoading,
+  clearPlaybackHistory
 } = musicPlayerSlice.actions;
 
 export default musicPlayerSlice.reducer;

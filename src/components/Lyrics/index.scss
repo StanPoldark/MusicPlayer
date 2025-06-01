@@ -37,9 +37,79 @@ body.fullscreen-active {
   overflow-y: auto;
   padding: 20px;
   scroll-behavior: smooth;
+  
+  /* 自定义滚动条样式 */
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: rgba(4, 222, 255, 0.5);
+    border-radius: 3px;
+    
+    &:hover {
+      background: rgba(4, 222, 255, 0.7);
+    }
+  }
 }
 
-/* Fullscreen mode adjustments */
+/* 固定歌名标题样式 */
+.sticky-song-title {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.7) 70%, transparent 100%);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(4, 222, 255, 0.2);
+  
+  /* 渐变文字效果 */
+  .song-title-text {
+    background: linear-gradient(45deg, #3B82F6, #60A5FA, #04DEFF);
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: gradient-shift 4s ease-in-out infinite;
+    text-shadow: 0 0 20px rgba(4, 222, 255, 0.3);
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+  }
+}
+
+/* 回到当前歌词按钮样式 */
+.back-to-current-btn {
+  .ant-btn {
+    background: rgba(4, 222, 255, 0.8) !important;
+    border-color: rgba(4, 222, 255, 0.8) !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 4px 12px rgba(4, 222, 255, 0.3);
+    transition: all 0.3s ease;
+    
+    &:hover {
+      background: rgba(4, 222, 255, 1) !important;
+      border-color: rgba(4, 222, 255, 1) !important;
+      box-shadow: 0 6px 16px rgba(4, 222, 255, 0.4);
+      transform: translateY(-2px);
+    }
+    
+    &:active {
+      transform: translateY(0);
+    }
+    
+    .anticon {
+      color: white;
+      font-size: 16px;
+    }
+  }
+}
+
+/* Fullscreen mode adjustments - 保持原有风格 */
 body.fullscreen-active {
   .layout {
     .lyr-container {
@@ -57,6 +127,13 @@ body.fullscreen-active {
     .lyrics-container {
       padding: 40px 50px;
       font-size: 1.2em;
+    }
+    
+    .sticky-song-title {
+      .song-title-text {
+        font-size: 2rem;
+        text-shadow: 0 0 30px rgba(4, 222, 255, 0.5);
+      }
     }
   }
 }
@@ -78,5 +155,177 @@ body.fullscreen-active {
   
   .lyrics-container {
     padding: 10px;
+    
+    &::-webkit-scrollbar {
+      width: 4px;
+    }
+  }
+  
+  .sticky-song-title {
+    .song-title-text {
+      font-size: 1.2rem;
+    }
+  }
+  
+  .back-to-current-btn {
+    bottom: 80px !important;
+    right: 16px !important;
+    
+    .ant-btn {
+      width: 40px;
+      height: 40px;
+      
+      .anticon {
+        font-size: 14px;
+      }
+    }
+  }
+}
+
+/* 歌词行动画增强 */
+.lyric-line {
+  transition: all 0.3s ease;
+  padding: 8px 0;
+  border-radius: 8px;
+  
+  &.active {
+    background: rgba(4, 222, 255, 0.1);
+    transform: scale(1.02);
+    box-shadow: 0 2px 8px rgba(4, 222, 255, 0.2);
+  }
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
+  
+  /* 歌词字符样式 */
+  span {
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: color, text-shadow, transform;
+    
+    /* 平滑的字符高亮动画 */
+    &.lyric-char {
+      position: relative;
+      
+      &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(90deg, 
+          rgba(4, 222, 255, 0) 0%, 
+          rgba(4, 222, 255, 0.2) 50%, 
+          rgba(4, 222, 255, 0) 100%);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        border-radius: 2px;
+        z-index: -1;
+      }
+      
+      &.current-char::before {
+        opacity: 1;
+        animation: char-glow 1s ease-in-out infinite alternate;
+      }
+    }
+    
+    /* 当前正在唱的字符特效 */
+    &.singing {
+      animation: singing-pulse 0.6s ease-in-out infinite alternate;
+    }
+    
+    /* 已唱过的字符保持高亮 */
+    &.sung {
+      color: #04DEFF !important;
+      text-shadow: 0 0 8px rgba(4, 222, 255, 0.6) !important;
+      font-weight: bold !important;
+    }
+    
+    /* 未唱到的字符 */
+    &.unsung {
+      color: #9CA3AF !important;
+      text-shadow: none !important;
+    }
+  }
+}
+
+/* 渐变动画 */
+@keyframes gradient-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* 脉冲动画 */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(4, 222, 255, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(4, 222, 255, 0.6);
+  }
+}
+
+/* 当前歌词行的特殊效果 */
+.current-lyric-line {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* 字符发光动画 */
+@keyframes char-glow {
+  0% {
+    opacity: 0.3;
+    transform: scaleX(0.8);
+  }
+  100% {
+    opacity: 0.6;
+    transform: scaleX(1.2);
+  }
+}
+
+/* 正在唱的字符脉冲动画 */
+@keyframes singing-pulse {
+  0% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  100% {
+    transform: scale(1.08);
+    filter: brightness(1.2);
+  }
+}
+
+/* 平滑的颜色过渡 */
+.lyric-char-transition {
+  background: linear-gradient(90deg, 
+    #9CA3AF 0%, 
+    #04DEFF 50%, 
+    #04DEFF 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: text-reveal 2s ease-in-out forwards;
+}
+
+@keyframes text-reveal {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: 0% 0;
+  }
+}
+
+/* 增强的视觉反馈 */
+.lyric-line.active span {
+  &:hover {
+    transform: scale(1.1);
+    text-shadow: 0 0 12px rgba(4, 222, 255, 0.8);
+    transition: all 0.2s ease;
   }
 }

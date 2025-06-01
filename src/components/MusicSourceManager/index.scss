@@ -1,0 +1,218 @@
+.music-source-manager-modal {
+  .ant-modal-body {
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+}
+
+.music-source-manager {
+  .source-item {
+    padding: 0;
+    border: none;
+    
+    .ant-list-item-meta {
+      margin-bottom: 0;
+    }
+  }
+
+  .source-card {
+    margin-bottom: 12px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    
+    &.enabled {
+      border-color: #1890ff;
+      box-shadow: 0 2px 8px rgba(24, 144, 255, 0.1);
+      
+      &:hover {
+        box-shadow: 0 4px 16px rgba(24, 144, 255, 0.2);
+        transform: translateY(-2px);
+      }
+    }
+    
+    &.disabled {
+      border-color: #d9d9d9;
+      background-color: #fafafa;
+      
+      .source-info {
+        opacity: 0.6;
+      }
+    }
+  }
+
+  .source-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    width: 100%;
+  }
+
+  .source-info {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    flex: 1;
+  }
+
+  .source-details {
+    flex: 1;
+    
+    .ant-typography {
+      margin-bottom: 4px;
+    }
+    
+    .ant-tag {
+      margin-right: 4px;
+      margin-bottom: 4px;
+    }
+  }
+
+  .source-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    min-width: 120px;
+  }
+
+  .source-settings {
+    margin-top: 12px;
+    
+    .priority-setting {
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+      
+      .ant-slider {
+        margin-left: 12px;
+      }
+    }
+    
+    .rate-limit-info {
+      margin-top: 8px;
+      padding: 8px;
+      background-color: #f5f5f5;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+  }
+
+  .ant-alert {
+    border-radius: 8px;
+  }
+
+  .ant-list-loading {
+    min-height: 200px;
+  }
+}
+
+// 响应式设计
+@media (max-width: 768px) {
+  .music-source-manager-modal {
+    .ant-modal {
+      width: 95% !important;
+      margin: 10px;
+    }
+  }
+
+  .music-source-manager {
+    .source-header {
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .source-controls {
+      align-self: stretch;
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .priority-setting {
+      flex-direction: column;
+      align-items: flex-start;
+      
+      .ant-slider {
+        margin-left: 0;
+        margin-top: 8px;
+        width: 100%;
+      }
+    }
+  }
+}
+
+// 动画效果
+.source-card {
+  .source-settings {
+    overflow: hidden;
+  }
+}
+
+.ant-tag {
+  &.ant-tag-success {
+    background-color: #f6ffed;
+    border-color: #b7eb8f;
+    color: #52c41a;
+  }
+  
+  &.ant-tag-error {
+    background-color: #fff2f0;
+    border-color: #ffccc7;
+    color: #ff4d4f;
+  }
+  
+  &.ant-tag-processing {
+    background-color: #e6f7ff;
+    border-color: #91d5ff;
+    color: #1890ff;
+  }
+  
+  &.ant-tag-gold {
+    background-color: #fffbe6;
+    border-color: #ffe58f;
+    color: #faad14;
+  }
+}
+
+// 滑块样式优化
+.ant-slider {
+  .ant-slider-track {
+    background-color: #1890ff;
+  }
+  
+  .ant-slider-handle {
+    border-color: #1890ff;
+    
+    &:hover,
+    &:focus {
+      border-color: #40a9ff;
+      box-shadow: 0 0 0 5px rgba(24, 144, 255, 0.12);
+    }
+  }
+}
+
+// 开关样式优化
+.ant-switch {
+  &.ant-switch-checked {
+    background-color: #52c41a;
+  }
+}
+
+// 模态框样式优化
+.ant-modal {
+  .ant-modal-header {
+    border-radius: 8px 8px 0 0;
+  }
+  
+  .ant-modal-content {
+    border-radius: 8px;
+  }
+  
+  .ant-modal-footer {
+    border-radius: 0 0 8px 8px;
+    
+    .ant-btn {
+      margin-left: 8px;
+    }
+  }
+} 

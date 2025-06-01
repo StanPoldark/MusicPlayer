@@ -24,43 +24,49 @@ const Layout = ({ children }: any) => {
   return (
     <Provider store={store}>
       <FullscreenProvider>
-        <html>
+        <html lang="zh-CN">
+          <head>
+            <meta charSet="utf-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <title>音乐播放器</title>
+            <link rel="icon" href="/favicon.ico" sizes="any" />
+          </head>
           <body>
-          <Loading initState={initState} />
-          <DynamicBackground />
-          <TransitionGroup className='main-wrapper animate__animated animate__fadeIn'>
-            <CSSTransition
-              timeout={3000}
-              classNames="page-transition" // Using classNames for transitions
-            >
-              <div className='layout'>
-                {/* Header */}
-                <div className="header">
-                  {/* Add Header content here */}
-                </div>
-                
-                {/* Main Content Area with route transitions */}
-                <TransitionGroup
-                  className='middle_content'
-                  childFactory={(child: any) => React.cloneElement(child, { classNames: 'page' })}
-                >
-                  <CSSTransition
-                    timeout={800}
-                    classNames="page" // Define your CSS classes for transitions
+            <Loading initState={initState} />
+            <DynamicBackground />
+            <TransitionGroup className='main-wrapper animate__animated animate__fadeIn'>
+              <CSSTransition
+                timeout={3000}
+                classNames="page-transition" // Using classNames for transitions
+              >
+                <div className='layout'>
+                  {/* Header */}
+                  <div className="header">
+                    {/* Add Header content here */}
+                  </div>
+                  
+                  {/* Main Content Area with route transitions */}
+                  <TransitionGroup
+                    className='middle_content'
+                    childFactory={(child: any) => React.cloneElement(child, { classNames: 'page' })}
                   >
-                    
-                    {children}
-                  </CSSTransition>
-                </TransitionGroup>
-                
-                {/* Footer */}
-                <div className= {isMobile ? "" : "footer"}>
-                  {/* Add Footer content here */}
+                    <CSSTransition
+                      timeout={800}
+                      classNames="page" // Define your CSS classes for transitions
+                    >
+                      
+                      {children}
+                    </CSSTransition>
+                  </TransitionGroup>
+                  
+                  {/* Footer */}
+                  <div className= {isMobile ? "" : "footer"}>
+                    {/* Add Footer content here */}
+                  </div>
                 </div>
-              </div>
-            </CSSTransition>
-          </TransitionGroup>
-          
+              </CSSTransition>
+            </TransitionGroup>
+            
           </body>
         </html>
       </FullscreenProvider>

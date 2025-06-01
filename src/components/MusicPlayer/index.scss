@@ -38,7 +38,7 @@
   opacity: 1;
 }
 
-/* Fullscreen mode styles */
+/* Fullscreen mode styles - 保持原有设计风格 */
 body.fullscreen-active {
   .layout {
     /* Apply styles to the main layout in fullscreen mode */
@@ -47,7 +47,7 @@ body.fullscreen-active {
       max-width: 100%;
       padding: 0;
       margin: 0;
-      height: 100%;
+      height: 100vh;
     }
     
     /* Hide the sidebars in fullscreen mode */
@@ -62,20 +62,23 @@ body.fullscreen-active {
       max-width: 100% !important;
       flex: 0 0 100% !important;
     }
+    
     .mainbox {
-      height: 100% !important;
-      width: 100% !important;
+      height: 100vh !important;
+      width: 100vw !important;
+      margin: 0 !important;
+      transition: all 0.3s ease;
     }
+    
     /* Adjust main content box in fullscreen mode */
     .box {
       height: 100vh !important;
       width: 100% !important;
       max-width: 100% !important;
-      padding: 20px !important;
+      padding: 40px !important;
       border-radius: 0 !important;
       transition: all 0.3s ease;
     }
-
   }
 
   /* Mobile specific adjustments */
@@ -92,7 +95,7 @@ body.fullscreen-active {
     }
     
     .box {
-      padding-bottom: 0 !important;
+      padding: 20px !important;
     }
   }
 }
@@ -172,8 +175,6 @@ body.fullscreen-active {
         background-color: rgb(255, 255, 255);
         width: 0.5rem;
       }
-
     }
-
   }
 }
