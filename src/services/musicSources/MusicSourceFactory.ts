@@ -71,7 +71,6 @@ export class MusicSourceFactory {
    */
   registerPlugin(plugin: MusicSourcePlugin): void {
     this.plugins.set(plugin.id, plugin);
-    console.log(`[MusicSourceFactory] Registered plugin: ${plugin.name} v${plugin.version}`);
   }
 
   /**
@@ -84,7 +83,7 @@ export class MusicSourceFactory {
       if (this.instances.has(pluginId)) {
         this.instances.delete(pluginId);
       }
-      console.log(`[MusicSourceFactory] Unregistered plugin: ${pluginId}`);
+    
     }
   }
 
@@ -106,7 +105,6 @@ export class MusicSourceFactory {
     try {
       const instance = new plugin.constructor();
       this.instances.set(sourceId, instance);
-      console.log(`[MusicSourceFactory] Created instance: ${sourceId}`);
       return instance;
     } catch (error) {
       console.error(`[MusicSourceFactory] Failed to create instance for ${sourceId}:`, error);
@@ -164,7 +162,6 @@ export class MusicSourceFactory {
    */
   clearInstances(): void {
     this.instances.clear();
-    console.log('[MusicSourceFactory] Cleared all instances');
   }
 }
 

@@ -139,7 +139,6 @@ export class MusicSourceManager {
   registerSource(source: IMusicSource): void {
     const info = source.getInfo();
     this.sources.set(info.id, source);
-    console.log(`[MusicSourceManager] Registered source: ${info.name}`);
   }
 
   /**
@@ -151,7 +150,7 @@ export class MusicSourceManager {
       delete this.config.sources[sourceId];
       this.updateEnabledSources();
       this.saveConfig();
-      console.log(`[MusicSourceManager] Unregistered source: ${sourceId}`);
+  
     }
   }
 
@@ -164,7 +163,6 @@ export class MusicSourceManager {
       this.defaultSource = source;
       this.config.defaultSource = sourceId;
       this.saveConfig();
-      console.log(`[MusicSourceManager] Set default source: ${sourceId}`);
     }
   }
 
@@ -200,7 +198,7 @@ export class MusicSourceManager {
       
       this.updateEnabledSources();
       this.saveConfig();
-      console.log(`[MusicSourceManager] ${enabled ? 'Enabled' : 'Disabled'} source: ${sourceId}`);
+
     }
   }
 
@@ -222,7 +220,6 @@ export class MusicSourceManager {
       
       this.updateEnabledSources();
       this.saveConfig();
-      console.log(`[MusicSourceManager] Set priority for ${sourceId}: ${priority}`);
     }
   }
 

@@ -17,8 +17,55 @@ import { motion } from "framer-motion";
 import { MusicSourceManager } from "@/services/MusicSourceManager";
 import { SearchOptions } from "@/types/music";
 import MusicSourceManagerComponent from "@/components/MusicSourceManager";
+import AudioCacheManager from "@/utils/AudioCache";
 
 const { Option } = Select;
+
+// 工具函数：确保 Track 对象的序列化安全
+const sanitizeTrack = (track: any): Track => {
+  return {
+    id: Number(track.id) || 0,
+    name: String(track.name || ''),
+    ar: Array.isArray(track.ar) ? track.ar.map(String) : [String(track.ar || '')],
+    url: String(track.url || ''),
+    time: Number(track.time || 0),
+    picUrl: track.picUrl ? String(track.picUrl) : null,
+    lyric: String(track.lyric || ''),
+    source: track.source ? String(track.source) : undefined,
+  };
+};
+
+// 安全的日志函数，避免Next.js开发环境的reactRender错误
+const safeLog = {
+  error: (...args: any[]) => {
+    // 使用setTimeout异步调用，避免触发Next.js的错误拦截器
+    setTimeout(() => {
+      try {
+        console.warn('[ERROR]', ...args);
+      } catch (e) {
+        // 如果还是有问题，就静默处理
+      }
+    }, 0);
+  },
+  warn: (...args: any[]) => {
+    setTimeout(() => {
+      try {
+        console.warn(...args);
+      } catch (e) {
+        // 静默处理
+      }
+    }, 0);
+  },
+  info: (...args: any[]) => {
+    setTimeout(() => {
+      try {
+        console.info(...args);
+      } catch (e) {
+        // 静默处理
+      }
+    }, 0);
+  }
+};
 
 // 定义音乐搜索组件
 const MusicSearch: React.FC = () => {
@@ -48,6 +95,7 @@ const MusicSearch: React.FC = () => {
   const [searchContentHeight, setSearchContentHeight] = useState<number>(0);
 
   const musicSourceManager = MusicSourceManager.getInstance();
+  const audioCache = useMemo(() => AudioCacheManager.getInstance(), []);
 
   // 使用 useMemo 创建一个记忆化的Redux歌曲映射，提高查找性能
   const reduxTracksMap = useMemo(() => {
@@ -113,7 +161,7 @@ const MusicSearch: React.FC = () => {
       const result = await musicSourceManager.search(searchOptions);
       
       if (result.errors.length > 0) {
-        console.warn('Search errors:', result.errors);
+        safeLog.warn('Search errors:', result.errors);
       }
 
       // 转换为组件期望的Track格式
@@ -129,7 +177,7 @@ const MusicSearch: React.FC = () => {
 
       return tracks;
     } catch (error) {
-      console.error('MusicSourceManager search failed:', error);
+      safeLog.error('MusicSourceManager search failed:', error);
       throw error;
     }
   }, [musicSourceManager]);
@@ -166,7 +214,7 @@ const MusicSearch: React.FC = () => {
       
       return updatedSongList;
     } catch (error) {
-      console.error("获取歌曲URL失败:", error);
+      safeLog.error("获取歌曲URL失败:", error);
       setError("获取歌曲URL失败");
       return songList; // 返回原始列表，不含URL
     }
@@ -251,7 +299,7 @@ const MusicSearch: React.FC = () => {
         }
       } catch (error) {
         // 如果搜索出错，则打印错误信息并提示用户搜索失败
-        console.error("搜索错误:", error);
+        safeLog.error("搜索错误:", error);
         setError("搜索失败，请稍后重试");
         message.error("搜索失败");
         setSearchResults([]);
@@ -268,29 +316,18 @@ const MusicSearch: React.FC = () => {
     debouncedHandleSearch();
   };
 
-  // 处理歌曲点击事件
+  // 点击歌曲的处理函数
   const handleSongClick = useCallback(
     async (track: Track) => {
-      if (processingTrackId === track.id) {
-        return; // 如果当前歌曲正在处理中，不再重复处理
-      }
-
-      // 检查Redux中是否存在当前歌曲
-      const trackInReduxPlaylist = reduxTracksMap.get(track.id);
-      if (trackInReduxPlaylist) {
-        // 如果歌曲已经存在于Redux中，直接使用它
-        dispatch(setCurrentTrack(trackInReduxPlaylist));
-        dispatch(addTrackToPlaylist({ from: "play", track: trackInReduxPlaylist }));
-        return;
-      }
-
-      // 检查已存储歌曲中是否存在当前歌曲
-      const existingTrack = storedTracks.find((t) => t.id === track.id);
-
-      // 如果存在，则设置当前歌曲并添加到播放列表
+      // 防止重复处理
+      if (processingTrackId === track.id) return;
+      
+      // 检查歌曲是否已在Redux播放列表中
+      const existingTrack = reduxTracksMap.get(track.id);
       if (existingTrack) {
         dispatch(setCurrentTrack(existingTrack));
         dispatch(addTrackToPlaylist({ from: "play", track: existingTrack }));
+        message.success(`正在播放: ${track.name}`);
         return;
       }
 
@@ -309,30 +346,39 @@ const MusicSearch: React.FC = () => {
           return;
         }
         
+        // 获取歌曲URL
+        const songUrls = await getSongUrls([track.id]);
+        const songData = songUrls?.data?.[0];
+        const songUrl = songData?.url 
+          ? `/api/proxy/music?url=${encodeURIComponent(songData.url)}`
+          : '';
+        
         // 获取歌词
         const songLyric = await getlyric(track.id);
         
-        // 更新歌曲对象
-        const updatedTrack = {
+        // 创建清理后的歌曲对象，确保所有数据都是可序列化的
+        const updatedTrack = sanitizeTrack({
           ...track,
+          url: songUrl,
+          time: songData?.time || track.time || 0,
           lyric: songLyric?.lrc?.lyric || "",
-        };
+        });
 
         // 将更新后的歌曲对象添加到已存储歌曲中
         setStoredTracks((prevTracks) => [...prevTracks, updatedTrack]);
 
-        try {
         // 设置当前歌曲并添加到播放列表
         dispatch(setCurrentTrack(updatedTrack));
         dispatch(addTrackToPlaylist({ from: "play", track: updatedTrack }));
         message.success(`正在播放: ${track.name}`);
-        } catch (dispatchError) {
-          console.error("Redux dispatch error:", dispatchError);
-          message.error("播放设置失败，请重试");
+        
+        // 预缓存音频（如果有URL）
+        if (updatedTrack.url && !audioCache.isCached(updatedTrack.id)) {
+          audioCache.preCacheAudio(updatedTrack.url, updatedTrack.id);
         }
       } catch (error) {
         // 如果获取歌曲URL出错，则打印错误信息并提示用户
-        console.error("获取歌曲失败:", error instanceof Error ? error.message : String(error));
+        safeLog.error("获取歌曲失败:", error instanceof Error ? error.message : String(error));
         setError("获取歌曲失败，请重试");
         message.error("获取歌曲失败，请重试");
       } finally {
@@ -372,11 +418,13 @@ const MusicSearch: React.FC = () => {
         // 获取歌词
         const songLyric = await getlyric(track.id);
         
-        // 更新歌曲对象
-        const updatedTrack = {
+        // 创建清理后的歌曲对象，确保所有数据都是可序列化的
+        const updatedTrack = sanitizeTrack({
           ...track,
+          url: "", // 添加到播放列表时不需要立即获取URL
+          time: Number(track.time || 0),
           lyric: songLyric?.lrc?.lyric || "",
-        };
+        });
 
         // 将更新后的歌曲对象添加到已存储歌曲中
         setStoredTracks((prevTracks) => [...prevTracks, updatedTrack]);
@@ -384,9 +432,14 @@ const MusicSearch: React.FC = () => {
         // 添加到播放列表
         dispatch(addTrackToPlaylist({ from: "add", track: updatedTrack }));
         message.success(`已添加 ${track.name} 到播放列表`);
+        
+        // 预缓存音频（如果有URL）
+        if (updatedTrack.url && !audioCache.isCached(updatedTrack.id)) {
+          audioCache.preCacheAudio(updatedTrack.url, updatedTrack.id);
+        }
       } catch (error) {
         // 如果获取歌曲信息出错，则打印错误信息并提示用户
-        console.error("获取歌曲失败:", error instanceof Error ? error.message : String(error));
+        safeLog.error("获取歌曲失败:", error instanceof Error ? error.message : String(error));
         setError("获取歌曲失败，请重试");
         message.error("获取歌曲失败，请重试");
       } finally {

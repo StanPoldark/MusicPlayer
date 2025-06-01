@@ -22,9 +22,11 @@ export interface Track {
   name: string;
   id: number;
   ar: string[]; // 艺术家名字数组
-  picUrl: string; // 专辑封面图片 URL
+  picUrl: string | null; // 专辑封面图片 URL
   url: string; // 音乐文件的 URL
-  [key: string]: any; // 可扩展字段
+  time?: number; // 歌曲时长（秒）
+  lyric?: string; // 歌词
+  source?: string; // 音乐源
 }
 
 // 定义 API 返回的数据结构

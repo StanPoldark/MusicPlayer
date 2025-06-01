@@ -37,6 +37,7 @@ import { ArrowsAltOutlined, ShrinkOutlined } from "@ant-design/icons";
 import mediaQuery from "@/utils/mediaQuery";
 import { motion, AnimatePresence } from "framer-motion";
 import { message } from "antd";
+import AudioCacheManager from "@/utils/AudioCache";
 
 // Create a fullscreen context
 const FullscreenContext = React.createContext<{
@@ -104,7 +105,8 @@ const MusicPlayer: React.FC<{ fullScreen: () => void }> = ({ fullScreen }) => {
     hasUserInteracted,
     currentTime: reduxCurrentTime,
     duration: reduxDuration,
-    isLoading: reduxIsLoading
+    isLoading: reduxIsLoading,
+    playlist
   } = useAppSelector((state) => state.musicPlayer);
   const { setAudio } = useAudio();
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -119,6 +121,10 @@ const MusicPlayer: React.FC<{ fullScreen: () => void }> = ({ fullScreen }) => {
   const [lastTrackId, setLastTrackId] = useState<number | null>(null);
   const [actuallyPlaying, setActuallyPlaying] = useState(false); // 跟踪实际音频播放状态
   const isMobile = mediaQuery("(max-width: 768px)");
+  
+  // 音频缓存管理器
+  const audioCache = useMemo(() => AudioCacheManager.getInstance(), []);
+  const [cachedUrls, setCachedUrls] = useState<Map<number, string>>(new Map());
 
   // Fullscreen toggle function
   const toggleFullscreen = () => {
@@ -231,34 +237,86 @@ const MusicPlayer: React.FC<{ fullScreen: () => void }> = ({ fullScreen }) => {
     }
   }, [audioContext, isPlaying, dispatch, hasUserInteracted, currentTrack, isAudioReady, initializeAudioContext]);
 
-  // 音频源管理 - 只在歌曲真正切换时设置新源
+  // 音频源管理 - 集成缓存功能
   useEffect(() => {
     if (!audioRef.current || !currentTrack) return;
 
-    // 检查是否是新歌曲
-    const isNewTrack = currentTrack.id !== lastTrackId;
-    
-    if (isNewTrack && currentTrack.url) {
-      setIsAudioReady(false);
-      setProgress(0);
+    const loadAudioSource = async () => {
+      // 检查是否是新歌曲
+      const isNewTrack = currentTrack.id !== lastTrackId;
       
-      // 设置新的音频源
-    audioRef.current.src = currentTrack.url;
-    setAudio(audioRef.current);
-      setLastTrackId(currentTrack.id);
-      
-      // 如果当前正在播放，暂停Redux状态（音频会在准备就绪后自动播放）
-      if (isPlaying) {
-        dispatch(togglePlay());
+      if (isNewTrack && currentTrack.url) {
+        setIsAudioReady(false);
+        setProgress(0);
+        dispatch(setLoading(true));
+        
+        try {
+          let audioUrl = currentTrack.url;
+          
+          // 检查是否为本地文件
+          const isLocalFile = !currentTrack.url.startsWith('http://') && 
+                             !currentTrack.url.startsWith('https://') && 
+                             !currentTrack.url.startsWith('/api/');
+          
+          if (isLocalFile) {
+            // 本地文件直接使用原始URL，不进行缓存
+            audioUrl = currentTrack.url;
+          } else {
+            // 网络文件：优先检查缓存，如果没有缓存则立即播放原始URL
+            let cachedUrl = audioCache.getCachedAudio(currentTrack.id);
+            
+            if (cachedUrl) {
+              // 有缓存：使用缓存URL，快速播放
+              message.success("使用缓存音频，播放更流畅！");
+              audioUrl = cachedUrl;
+            } else {
+              // 没有缓存：立即使用原始URL开始播放，同时启动后台缓存
+              audioUrl = currentTrack.url;
+              
+              // 不在这里启动后台缓存，而是在播放开始后再缓存
+              // 这样可以确保播放体验不受影响
+            }
+          }
+          
+          // 设置音频源
+          if (audioRef.current && audioUrl) {
+            audioRef.current.src = audioUrl;
+            setAudio(audioRef.current);
+            setLastTrackId(currentTrack.id);
+            
+            // 更新缓存URL映射
+            setCachedUrls(prev => new Map(prev).set(currentTrack.id, audioUrl));
+            
+            // 如果当前正在播放，暂停Redux状态（音频会在准备就绪后自动播放）
+            if (isPlaying) {
+              dispatch(togglePlay());
+            }
+          }
+          
+        } catch (error) {
+          console.error("Failed to load audio source:", error);
+          message.error("音频加载失败，请重试");
+          dispatch(setLoading(false));
+          
+          // 回退到原始URL
+          if (audioRef.current && currentTrack.url) {
+            audioRef.current.src = currentTrack.url;
+            setAudio(audioRef.current);
+            setLastTrackId(currentTrack.id);
+          }
+        }
+      } else if (!currentTrack.url) {
+        console.error("Track URL is missing");
+        message.error("获取歌曲失败，请重试");
+        dispatch(setLoading(false));
+        if (isPlaying) {
+          dispatch(togglePlay());
+        }
       }
-    } else if (!currentTrack.url) {
-      console.error("Track URL is missing");
-      message.error("获取歌曲失败，请重试");
-      if (isPlaying) {
-        dispatch(togglePlay());
-      }
-    }
-  }, [currentTrack?.id, currentTrack?.url, lastTrackId, setAudio, dispatch, isPlaying]);
+    };
+
+    loadAudioSource();
+  }, [currentTrack?.id, currentTrack?.url, lastTrackId, setAudio, dispatch, isPlaying, audioCache]);
 
   // 音频事件处理
   useEffect(() => {
@@ -347,6 +405,11 @@ const MusicPlayer: React.FC<{ fullScreen: () => void }> = ({ fullScreen }) => {
       if (!isPlaying) {
         dispatch(togglePlay());
       }
+      
+      // 播放开始后，启动智能缓存（如果当前歌曲还未缓存）
+      if (currentTrack && currentTrack.url) {
+        audioCache.cacheAfterPlayStart(currentTrack.url, currentTrack.id);
+      }
     };
 
     const handlePause = () => {
@@ -364,9 +427,19 @@ const MusicPlayer: React.FC<{ fullScreen: () => void }> = ({ fullScreen }) => {
       
       switch (repeatMode) {
         case "track":
+          // 单曲循环：直接重置时间并播放，不重新加载音频源
           audio.currentTime = 0;
           dispatch(setCurrentTime(0));
-          audio.play().catch(console.error);
+          setProgress(0);
+          
+          // 确保使用缓存的音频源
+          if (currentTrack && audioCache.isCached(currentTrack.id)) {
+
+            audio.play().catch(console.error);
+          } else {
+            // 如果没有缓存，正常播放
+            audio.play().catch(console.error);
+          }
           break;
         case "playlist":
           dispatch(nextTrack());
@@ -439,6 +512,29 @@ const MusicPlayer: React.FC<{ fullScreen: () => void }> = ({ fullScreen }) => {
     audioRef.current.volume = volume;
   }, [volume]);
 
+  // 预缓存下一首歌曲
+  useEffect(() => {
+    if (!currentTrack || !hasUserInteracted) return;
+    
+    const currentIndex = playlist.findIndex(track => track.id === currentTrack.id);
+    
+    if (currentIndex !== -1 && currentIndex < playlist.length - 1) {
+      const nextTrackInPlaylist = playlist[currentIndex + 1];
+      
+      if (nextTrackInPlaylist?.url && !audioCache.isCached(nextTrackInPlaylist.id)) {
+        audioCache.preCacheAudio(nextTrackInPlaylist.url, nextTrackInPlaylist.id);
+      }
+    }
+    
+    // 如果是播放列表循环模式，也预缓存第一首歌
+    if (repeatMode === 'playlist' && currentIndex === playlist.length - 1 && playlist.length > 1) {
+      const firstTrack = playlist[0];
+      if (firstTrack?.url && !audioCache.isCached(firstTrack.id)) {
+        audioCache.preCacheAudio(firstTrack.url, firstTrack.id);
+      }
+    }
+  }, [currentTrack?.id, hasUserInteracted, audioCache, repeatMode, playlist]);
+
   const handleVolumeChange = useCallback(
     (newVolume: number) => {
       const safeVolume = Math.min(Math.max(newVolume, 0), 1);
@@ -467,18 +563,6 @@ const MusicPlayer: React.FC<{ fullScreen: () => void }> = ({ fullScreen }) => {
     }
     setIsDragging(false);
   }, [reduxDuration, isAudioReady, dispatch]);
-
-  // 调试：监控播放状态变化
-  useEffect(() => {
-    console.log('播放状态变化:', {
-      isPlaying,
-      actuallyPlaying,
-      reduxIsLoading,
-      isAudioReady,
-      audioPaused: audioRef.current?.paused,
-      audioEnded: audioRef.current?.ended
-    });
-  }, [isPlaying, actuallyPlaying, reduxIsLoading, isAudioReady]);
 
   // 键盘快捷键支持
   useEffect(() => {
@@ -539,6 +623,7 @@ const MusicPlayer: React.FC<{ fullScreen: () => void }> = ({ fullScreen }) => {
 
   // 全屏模式下显示快捷键提示
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [cacheStats, setCacheStats] = useState({ size: 0, count: 0, maxSize: 0 });
 
   useEffect(() => {
     if (isFullscreen) {
@@ -549,6 +634,20 @@ const MusicPlayer: React.FC<{ fullScreen: () => void }> = ({ fullScreen }) => {
       return () => clearTimeout(timer);
     }
   }, [isFullscreen]);
+
+  // 定期更新缓存统计信息（仅在开发环境）
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      const updateCacheStats = () => {
+        setCacheStats(audioCache.getCacheStats());
+      };
+      
+      updateCacheStats();
+      const interval = setInterval(updateCacheStats, 5000); // 每5秒更新一次
+      
+      return () => clearInterval(interval);
+    }
+  }, [audioCache]);
 
   if (!currentTrack) return null;
 
@@ -562,117 +661,124 @@ const MusicPlayer: React.FC<{ fullScreen: () => void }> = ({ fullScreen }) => {
       <div>
         <audio ref={audioRef} id="audio-element" preload="metadata" />
         <div
-          className="flex justify-between items-center mt-6 w-full relative"
+          className="grid grid-cols-3 items-center mt-6 w-full relative"
           ref={volumeContainerRef}
         >
-          {/* Volume control */}
-          <div className="relative h-8">
+          {/* Left side - Volume control */}
+          <div className="flex justify-start">
+            <div className="relative h-8">
+              <motion.button
+                onClick={() => setIsVolumeVisible(!isVolumeVisible)}
+                className="text-white hover:text-blue-500 transition-colors relative"
+                whileHover={buttonVariants.hover}
+                whileTap={buttonVariants.tap}
+              >
+                <VolumeIcon size={32} />
+              </motion.button>
+
+              <AnimatePresence>
+              {isVolumeVisible && (
+                  <motion.div
+                    className="absolute bottom-full transition-opacity duration-200 ease-in-out white_slider"
+                    variants={sliderContainerVariants}
+                    initial="hidden"
+                    animate="visible"
+                    exit="exit"
+                  style={{
+                    opacity: isVolumeVisible ? 1 : 0,
+                    height: "3rem",
+                    marginBottom: "1rem",
+                  }}
+                >
+                  <Slider
+                    min={0}
+                    max={1}
+                    value={volume}
+                    vertical
+                    className="h-full"
+                    onChange={handleVolumeChange}
+                    step={0.01}
+                  />
+                  </motion.div>
+              )}
+              </AnimatePresence>
+            </div>
+          </div>
+
+          {/* Center - Main control buttons */}
+          <div className="flex justify-center items-center gap-24">
             <motion.button
-              onClick={() => setIsVolumeVisible(!isVolumeVisible)}
-              className="text-white hover:text-blue-500 transition-colors relative"
+              onClick={() => dispatch(previousTrack())}
+              className="playButton"
               whileHover={buttonVariants.hover}
               whileTap={buttonVariants.tap}
             >
-              <VolumeIcon size={32} />
+              <SkipBack size={32} />
             </motion.button>
 
-            <AnimatePresence>
-            {isVolumeVisible && (
-                <motion.div
-                  className="absolute bottom-full transition-opacity duration-200 ease-in-out white_slider"
-                  variants={sliderContainerVariants}
-                  initial="hidden"
-                  animate="visible"
-                  exit="exit"
-                style={{
-                  opacity: isVolumeVisible ? 1 : 0,
-                  height: "3rem",
-                  marginBottom: "1rem",
-                }}
-              >
-                <Slider
-                  min={0}
-                  max={1}
-                  value={volume}
-                  vertical
-                  className="h-full"
-                  onChange={handleVolumeChange}
-                  step={0.01}
-                />
-                </motion.div>
-            )}
-            </AnimatePresence>
+            <motion.button
+              onClick={handlePlayClick}
+              className="playButton"
+              whileHover={buttonVariants.hover}
+              whileTap={buttonVariants.tap}
+              disabled={reduxIsLoading}
+              style={{ opacity: reduxIsLoading ? 0.6 : 1 }}
+            >
+              {reduxIsLoading ? (
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+              ) : actuallyPlaying ? (
+                <Pause size={32} />
+              ) : (
+                <Play size={32} />
+              )}
+            </motion.button>
+
+            <motion.button
+              onClick={() => dispatch(nextTrack())}
+              className="playButton"
+              whileHover={buttonVariants.hover}
+              whileTap={buttonVariants.tap}
+            >
+              <SkipForward size={32} />
+            </motion.button>
           </div>
 
-          {/* Main control buttons */}
-          <motion.button
-            onClick={() => dispatch(previousTrack())}
-            className="playButton"
-            whileHover={buttonVariants.hover}
-            whileTap={buttonVariants.tap}
-          >
-            <SkipBack size={32} />
-          </motion.button>
-
-          <motion.button
-            onClick={handlePlayClick}
-            className="playButton"
-            whileHover={buttonVariants.hover}
-            whileTap={buttonVariants.tap}
-            disabled={reduxIsLoading}
-            style={{ opacity: reduxIsLoading ? 0.6 : 1 }}
-          >
-            {reduxIsLoading ? (
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
-            ) : actuallyPlaying ? (
-              <Pause size={32} />
-            ) : (
-              <Play size={32} />
-            )}
-          </motion.button>
-
-          <motion.button
-            onClick={() => dispatch(nextTrack())}
-            className="playButton"
-            whileHover={buttonVariants.hover}
-            whileTap={buttonVariants.tap}
-          >
-            <SkipForward size={32} />
-          </motion.button>
-
-          <div className="button-container">
-            <div className="button-group">
-              <motion.button
-                onClick={() => dispatch(toggleRepeatMode())}
-                className={`playButton ${
-                  repeatMode === "off" ? "text-gray-400" : "text-blue-500"
-                }`}
-                title={`Repeat Mode: ${repeatMode}`}
-                whileHover={buttonVariants.hover}
-                whileTap={buttonVariants.tap}
-              >
-                <RepeatIcon size={32} />
-              </motion.button>
-              {!isMobile && <div className="divider">/</div>}
-              <motion.button
-                onClick={toggleFullscreen}
-                className="playButton"
-                title={isFullscreen ? "Exit Full Screen" : "Full Screen Mode"}
-                whileHover={buttonVariants.hover}
-                whileTap={buttonVariants.tap}
-              >
-                {isMobile ? (
-                  isFullscreen ? (
-                    <ShrinkOutlined className="text-[32px] text-blue-500" />
-                  ) : null 
-                ) : (
-                  isFullscreen ? (
-                    <ShrinkOutlined className="text-[32px] text-blue-500" />
-                ) : (
-                  <ArrowsAltOutlined className="text-[32px]" />
-                  )
-                )}
-              </motion.button>
+          {/* Right side - Repeat and Fullscreen buttons */}
+          <div className="flex justify-end">
+            <div className="button-container">
+              <div className="button-group">
+                <motion.button
+                  onClick={() => dispatch(toggleRepeatMode())}
+                  className={`playButton ${
+                    repeatMode === "off" ? "text-gray-400" : "text-blue-500"
+                  }`}
+                  title={`Repeat Mode: ${repeatMode}`}
+                  whileHover={buttonVariants.hover}
+                  whileTap={buttonVariants.tap}
+                >
+                  <RepeatIcon size={32} />
+                </motion.button>
+                {!isMobile && <div className="divider">/</div>}
+                <motion.button
+                  onClick={toggleFullscreen}
+                  className="playButton"
+                  title={isFullscreen ? "Exit Full Screen" : "Full Screen Mode"}
+                  whileHover={buttonVariants.hover}
+                  whileTap={buttonVariants.tap}
+                >
+                  {isMobile ? (
+                    isFullscreen ? (
+                      <ShrinkOutlined className="text-[32px] text-blue-500" />
+                    ) : null 
+                  ) : (
+                    isFullscreen ? (
+                      <ShrinkOutlined className="text-[32px] text-blue-500" />
+                  ) : (
+                    <ArrowsAltOutlined className="text-[32px]" />
+                    )
+                  )}
+                </motion.button>
+              </div>
             </div>
           </div>
         </div>
@@ -724,6 +830,25 @@ const MusicPlayer: React.FC<{ fullScreen: () => void }> = ({ fullScreen }) => {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* 开发环境下的缓存状态显示 */}
+        {process.env.NODE_ENV === 'development' && (
+          <motion.div
+            className="fixed bottom-4 left-4 bg-black bg-opacity-70 text-white p-3 rounded text-xs"
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <div className="mb-1">音频缓存状态:</div>
+            <div>已缓存: {cacheStats.count} 首歌曲</div>
+            <div>缓存大小: {(cacheStats.size / 1024 / 1024).toFixed(2)}MB / {(cacheStats.maxSize / 1024 / 1024).toFixed(0)}MB</div>
+            {currentTrack && (
+              <div className="mt-1">
+                当前歌曲: {audioCache.isCached(currentTrack.id) ? '已缓存' : '未缓存'}
+              </div>
+            )}
+          </motion.div>
+        )}
       </div>
     </div>
   );
