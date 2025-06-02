@@ -64,7 +64,7 @@ const LyricsDisplay: React.FC<{isFullscreen:boolean}> = ({isFullscreen}) => {
     progress: number; // 添加当前字符的进度百分比
   }>({ lineIndex: -1, charIndex: -1, progress: 0 });
   const lyricsContainerRef = useRef<HTMLDivElement>(null);
-  
+
   // 重新设计的滚动控制状态
   const [isUserScrolling, setIsUserScrolling] = useState(false);
   const [showBackToCurrentButton, setShowBackToCurrentButton] = useState(false);
@@ -233,7 +233,7 @@ const LyricsDisplay: React.FC<{isFullscreen:boolean}> = ({isFullscreen}) => {
       const exactCharPosition = lineProgress * line.words.length;
       const charIndex = Math.floor(exactCharPosition);
       const clampedIndex = Math.min(charIndex, line.words.length - 1);
-      
+
       // 计算当前字符内的进度（0-1之间）
       const charProgress = exactCharPosition - charIndex;
       const finalProgress = Math.max(0, Math.min(1, charProgress));
@@ -375,14 +375,14 @@ const LyricsDisplay: React.FC<{isFullscreen:boolean}> = ({isFullscreen}) => {
     );
   }
 
-  return (
+ return (
     <motion.div 
       className="lyr-container flex"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
     >
-      {isFullscreen && 
+    {isFullscreen && 
         <motion.div 
           className="lyr-container-picUrl"
           initial={{ opacity: 0, scale: 0.9 }}
@@ -403,9 +403,9 @@ const LyricsDisplay: React.FC<{isFullscreen:boolean}> = ({isFullscreen}) => {
             }}
           />
         </motion.div>
-      }
+    }
       
-      <div className="relative w-full h-full">
+    <div className="relative w-full h-full">
         {/* 固定的歌名标题 */}
         <motion.div 
           className={`sticky-song-title ${
@@ -417,7 +417,7 @@ const LyricsDisplay: React.FC<{isFullscreen:boolean}> = ({isFullscreen}) => {
           transition={{ duration: 0.5, delay: 0.2 }}
         >
           <span className="song-title-text">
-            {currentTrack.name}
+          {currentTrack.name}
           </span>
         </motion.div>
         
@@ -445,50 +445,50 @@ const LyricsDisplay: React.FC<{isFullscreen:boolean}> = ({isFullscreen}) => {
         
         {/* 歌词容器 */}
         <motion.div
-          ref={lyricsContainerRef}
-          className="lyrics-container overflow-y-auto text-center p-4"
+        ref={lyricsContainerRef}
+        className="lyrics-container overflow-y-auto text-center p-4"
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          style={{ 
+        style={{
             height: isFullscreen ? 'calc(100% - 120px)' : 'calc(100% - 80px)',
             paddingTop: '20px'
-          }}
-        >
-          {parsedLyrics.map((line, lineIndex) => (
+        }}
+      >
+        {parsedLyrics.map((line, lineIndex) => (
             <motion.div
-              key={lineIndex}
+            key={lineIndex}
               variants={lineVariants}
               animate={lineIndex === currentPosition.lineIndex ? "active" : "visible"}
               className={`lyric-line mb-4 transition-opacity duration-300 ${
                 lineIndex === currentPosition.lineIndex 
                   ? "opacity-100 current-lyric-line" 
                   : "opacity-50"
-              }`}
+            }`}
               style={{ 
                 fontSize: isMobile ? "1rem" : "1.5rem", 
                 paddingTop: isFullscreen ? "1rem" : "0rem",
                 minHeight: "2rem", // 确保每行有最小高度，便于滚动定位
                 lineHeight: "1.6"
               }}
-            >
+          >
               {line.words.map((word, wordIndex) => {
                 const charStyle = getCharacterStyle(lineIndex, wordIndex);
                 return (
-                  <span
-                    key={wordIndex}
+              <span
+                key={wordIndex}
                     style={{
                       ...charStyle,
                       display: "inline-block",
                       fontWeight: lineIndex === currentPosition.lineIndex && wordIndex <= currentPosition.charIndex ? "bold" : "normal"
                     }}
-                  >
-                    {word.text}
-                  </span>
+              >
+                {word.text}
+              </span>
                 );
               })}
             </motion.div>
-          ))}
+        ))}
           
           {/* 底部留白，确保最后一行歌词可以滚动到中心 */}
           <div style={{ height: '50vh' }}></div>

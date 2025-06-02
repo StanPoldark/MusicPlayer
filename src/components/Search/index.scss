@@ -321,13 +321,13 @@
 
 // 兼容旧的searchBar类名
 .searchBar {
-  background-color: transparent !important;
-  border-color: white !important;
-  color: white !important;
-  font-size: 20px;
-  
+    background-color: transparent !important;
+    border-color: white !important;
+    color: white !important;
+    font-size: 20px;
+
   &::placeholder {
     color: white;
     font-size: 1rem;
   }
-}
+  }

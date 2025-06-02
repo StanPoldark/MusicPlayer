@@ -296,8 +296,8 @@ const MusicPlayer: React.FC<{ fullScreen: () => void }> = ({ fullScreen }) => {
           
           // 回退到原始URL
           if (audioRef.current && currentTrack.url) {
-            audioRef.current.src = currentTrack.url;
-            setAudio(audioRef.current);
+    audioRef.current.src = currentTrack.url;
+    setAudio(audioRef.current);
             setLastTrackId(currentTrack.id);
           }
         }
@@ -662,54 +662,54 @@ const MusicPlayer: React.FC<{ fullScreen: () => void }> = ({ fullScreen }) => {
         >
           {/* Left side - Volume control */}
           <div className="flex justify-start">
-            <div className="relative h-8">
+          <div className="relative h-8">
               <motion.button
-                onClick={() => setIsVolumeVisible(!isVolumeVisible)}
-                className="text-white hover:text-blue-500 transition-colors relative"
+              onClick={() => setIsVolumeVisible(!isVolumeVisible)}
+              className="text-white hover:text-blue-500 transition-colors relative"
                 whileHover={buttonVariants.hover}
                 whileTap={buttonVariants.tap}
-              >
-                <VolumeIcon size={32} />
+            >
+              <VolumeIcon size={32} />
               </motion.button>
 
               <AnimatePresence>
-              {isVolumeVisible && (
+            {isVolumeVisible && (
                   <motion.div
                     className="absolute bottom-full transition-opacity duration-200 ease-in-out white_slider"
                     variants={sliderContainerVariants}
                     initial="hidden"
                     animate="visible"
                     exit="exit"
-                  style={{
-                    opacity: isVolumeVisible ? 1 : 0,
-                    height: "3rem",
-                    marginBottom: "1rem",
-                  }}
-                >
-                  <Slider
-                    min={0}
-                    max={1}
-                    value={volume}
-                    vertical
-                    className="h-full"
-                    onChange={handleVolumeChange}
-                    step={0.01}
-                  />
+                style={{
+                  opacity: isVolumeVisible ? 1 : 0,
+                  height: "3rem",
+                  marginBottom: "1rem",
+                }}
+              >
+                <Slider
+                  min={0}
+                  max={1}
+                  value={volume}
+                  vertical
+                  className="h-full"
+                  onChange={handleVolumeChange}
+                  step={0.01}
+                />
                   </motion.div>
               )}
               </AnimatePresence>
-            </div>
+              </div>
           </div>
 
           {/* Center - Main control buttons */}
           <div className="flex justify-center items-center gap-24">
             <motion.button
-              onClick={() => dispatch(previousTrack())}
-              className="playButton"
+            onClick={() => dispatch(previousTrack())}
+            className="playButton"
               whileHover={buttonVariants.hover}
               whileTap={buttonVariants.tap}
-            >
-              <SkipBack size={32} />
+          >
+            <SkipBack size={32} />
             </motion.button>
 
             <motion.button
@@ -735,44 +735,44 @@ const MusicPlayer: React.FC<{ fullScreen: () => void }> = ({ fullScreen }) => {
               whileHover={buttonVariants.hover}
               whileTap={buttonVariants.tap}
             >
-              <SkipForward size={32} />
+            <SkipForward size={32} />
             </motion.button>
           </div>
 
           {/* Right side - Repeat and Fullscreen buttons */}
           <div className="flex justify-end">
-            <div className="button-container">
-              <div className="button-group">
+          <div className="button-container">
+            <div className="button-group">
                 <motion.button
-                  onClick={() => dispatch(toggleRepeatMode())}
-                  className={`playButton ${
-                    repeatMode === "off" ? "text-gray-400" : "text-blue-500"
-                  }`}
-                  title={`Repeat Mode: ${repeatMode}`}
+                onClick={() => dispatch(toggleRepeatMode())}
+                className={`playButton ${
+                  repeatMode === "off" ? "text-gray-400" : "text-blue-500"
+                }`}
+                title={`Repeat Mode: ${repeatMode}`}
                   whileHover={buttonVariants.hover}
                   whileTap={buttonVariants.tap}
-                >
-                  <RepeatIcon size={32} />
+              >
+                <RepeatIcon size={32} />
                 </motion.button>
-                {!isMobile && <div className="divider">/</div>}
+              {!isMobile && <div className="divider">/</div>}
                 <motion.button
-                  onClick={toggleFullscreen}
-                  className="playButton"
-                  title={isFullscreen ? "Exit Full Screen" : "Full Screen Mode"}
+                onClick={toggleFullscreen}
+                className="playButton"
+                title={isFullscreen ? "Exit Full Screen" : "Full Screen Mode"}
                   whileHover={buttonVariants.hover}
                   whileTap={buttonVariants.tap}
-                >
-                  {isMobile ? (
+              >
+                {isMobile ? (
+                  isFullscreen ? (
+                    <ShrinkOutlined className="text-[32px] text-blue-500" />
+                  ) : null 
+                ) : (
                     isFullscreen ? (
                       <ShrinkOutlined className="text-[32px] text-blue-500" />
-                    ) : null 
                   ) : (
-                    isFullscreen ? (
-                      <ShrinkOutlined className="text-[32px] text-blue-500" />
-                  ) : (
-                    <ArrowsAltOutlined className="text-[32px]" />
+                  <ArrowsAltOutlined className="text-[32px]" />
                     )
-                  )}
+                )}
                 </motion.button>
               </div>
             </div>
