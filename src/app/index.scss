@@ -80,7 +80,7 @@ body {
 // Mobile responsive styles for .box
 @media screen and (max-width: 768px) {
   .box {
-    height: 94%;
+    height: 94% !important;
   }
 }
 
