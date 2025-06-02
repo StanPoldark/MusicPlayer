@@ -140,6 +140,7 @@ apiClient.interceptors.response.use(
       try {
         return JSON.parse(error.message);
       } catch (e) {
+        console.error('[ERROR]', e);
         return error.message; 
       }
     }

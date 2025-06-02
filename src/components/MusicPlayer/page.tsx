@@ -124,7 +124,6 @@ const MusicPlayer: React.FC<{ fullScreen: () => void }> = ({ fullScreen }) => {
   
   // 音频缓存管理器
   const audioCache = useMemo(() => AudioCacheManager.getInstance(), []);
-  const [cachedUrls, setCachedUrls] = useState<Map<number, string>>(new Map());
 
   // Fullscreen toggle function
   const toggleFullscreen = () => {
@@ -263,7 +262,7 @@ const MusicPlayer: React.FC<{ fullScreen: () => void }> = ({ fullScreen }) => {
             audioUrl = currentTrack.url;
           } else {
             // 网络文件：优先检查缓存，如果没有缓存则立即播放原始URL
-            let cachedUrl = audioCache.getCachedAudio(currentTrack.id);
+            const cachedUrl = audioCache.getCachedAudio(currentTrack.id);
             
             if (cachedUrl) {
               // 有缓存：使用缓存URL，快速播放
@@ -283,9 +282,6 @@ const MusicPlayer: React.FC<{ fullScreen: () => void }> = ({ fullScreen }) => {
             audioRef.current.src = audioUrl;
             setAudio(audioRef.current);
             setLastTrackId(currentTrack.id);
-            
-            // 更新缓存URL映射
-            setCachedUrls(prev => new Map(prev).set(currentTrack.id, audioUrl));
             
             // 如果当前正在播放，暂停Redux状态（音频会在准备就绪后自动播放）
             if (isPlaying) {

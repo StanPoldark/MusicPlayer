@@ -43,7 +43,7 @@ const safeLog = {
       try {
         console.warn('[ERROR]', ...args);
       } catch (e) {
-        // 如果还是有问题，就静默处理
+        console.error('[ERROR]', e);
       }
     }, 0);
   },
@@ -51,8 +51,8 @@ const safeLog = {
     setTimeout(() => {
       try {
         console.warn(...args);
-      } catch (e) {
-        // 静默处理
+      } catch (e) {        // 静默处理
+        console.error('[ERROR]', e);
       }
     }, 0);
   },
@@ -61,7 +61,7 @@ const safeLog = {
       try {
         console.info(...args);
       } catch (e) {
-        // 静默处理
+        console.error('[ERROR]', e);
       }
     }, 0);
   }
