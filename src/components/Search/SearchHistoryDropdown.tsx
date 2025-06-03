@@ -1,5 +1,5 @@
 import React from 'react';
-import { Dropdown, List, Button, Typography, Space, Popconfirm } from 'antd';
+import { Dropdown, List, Button, Typography, Space, Popconfirm, MenuProps } from 'antd';
 import { ClockCircleOutlined, DeleteOutlined, ClearOutlined, FireOutlined } from '@ant-design/icons';
 import { SearchHistoryItem } from '@/utils/searchHistory';
 import './SearchHistoryDropdown.scss';
@@ -115,10 +115,10 @@ const SearchHistoryDropdown: React.FC<SearchHistoryDropdownProps> = ({
 
   return (
     <Dropdown
-      overlay={dropdownContent}
+      dropdownRender={() => dropdownContent}
       trigger={['click']}
-      visible={visible}
-      onVisibleChange={onVisibleChange}
+      open={visible}
+      onOpenChange={onVisibleChange}
       placement="bottomLeft"
       overlayClassName="search-history-overlay"
     >
