@@ -17,6 +17,56 @@
     .ant-space-compact {
       width: 100%;
       
+      // 搜索记录输入框样式
+      .search-input-with-history {
+        position: relative;
+        flex: 1;
+        
+        .ant-input {
+          width: 100% !important;
+          background-color: rgba(255, 255, 255, 0.1) !important;
+          border: 1px solid rgba(255, 255, 255, 0.3) !important;
+          color: white !important;
+          font-size: 14px;
+          border-radius: 8px 0 0 8px;
+          padding-left: 12px !important;
+          padding-right: 40px !important; // 为历史图标预留空间
+          
+          &::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+          }
+          
+          &:focus {
+            border-color: #1890ff !important;
+            box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2) !important;
+            background-color: rgba(255, 255, 255, 0.15) !important;
+            color: white !important;
+          }
+        }
+        
+        .history-trigger {
+          position: absolute;
+          right: 8px;
+          top: 50%;
+          transform: translateY(-50%);
+          color: rgba(255, 255, 255, 0.6);
+          cursor: pointer;
+          padding: 4px;
+          border-radius: 4px;
+          transition: all 0.2s ease;
+          z-index: 2;
+          
+          &:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+          }
+          
+          &.active {
+            color: #1890ff;
+          }
+        }
+      }
+      
       .ant-input {
         flex: 1 !important;
         width: 100% !important;

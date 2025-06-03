@@ -11,13 +11,15 @@ import {
 import { Track } from "@/redux/modules/types";
 import "./index.scss";
 import DownloadAudio from "@/utils/SongList/downloadAudio"
-import { VerticalAlignBottomOutlined, SettingOutlined } from "@ant-design/icons";
+import { VerticalAlignBottomOutlined, SettingOutlined, ClockCircleOutlined } from "@ant-design/icons";
 import { debounce } from 'lodash';
 import { motion } from "framer-motion";
 import { MusicSourceManager } from "@/services/MusicSourceManager";
 import { SearchOptions } from "@/types/music";
 import MusicSourceManagerComponent from "@/components/MusicSourceManager";
 import AudioCacheManager from "@/utils/AudioCache";
+import { SearchHistoryManager, SearchHistoryItem } from "@/utils/searchHistory";
+import SearchHistoryDropdown from "./SearchHistoryDropdown";
 
 const { Option } = Select;
 
@@ -51,8 +53,8 @@ const safeLog = {
     setTimeout(() => {
       try {
         console.warn(...args);
-      } catch (e) {        // 静默处理
-        console.error('[ERROR]', e);
+      } catch {        // 静默处理
+        console.warn('[ERROR]', ...args);
       }
     }, 0);
   },
@@ -60,8 +62,8 @@ const safeLog = {
     setTimeout(() => {
       try {
         console.info(...args);
-      } catch (e) {
-        console.error('[ERROR]', e);
+      } catch {
+        console.warn('[ERROR]', ...args);
       }
     }, 0);
   }
@@ -90,12 +92,17 @@ const MusicSearch: React.FC = () => {
   const [availableSources, setAvailableSources] = useState<any[]>([]);
   const [sourceManagerVisible, setSourceManagerVisible] = useState(false);
   
+  // 搜索记录相关状态
+  const [searchHistory, setSearchHistory] = useState<SearchHistoryItem[]>([]);
+  const [historyDropdownVisible, setHistoryDropdownVisible] = useState(false);
+  
   // 添加ref来获取search-content的高度
   const searchContentRef = useRef<HTMLDivElement>(null);
   const [searchContentHeight, setSearchContentHeight] = useState<number>(0);
 
   const musicSourceManager = MusicSourceManager.getInstance();
   const audioCache = useMemo(() => AudioCacheManager.getInstance(), []);
+  const searchHistoryManager = useMemo(() => SearchHistoryManager.getInstance(), []);
 
   // 使用 useMemo 创建一个记忆化的Redux歌曲映射，提高查找性能
   const reduxTracksMap = useMemo(() => {
@@ -114,9 +121,35 @@ const MusicSearch: React.FC = () => {
     setAvailableSources(sources);
   }, [musicSourceManager]);
 
+  // 加载搜索记录
+  const loadSearchHistory = useCallback(() => {
+    const history = searchHistoryManager.getSearchHistory();
+    setSearchHistory(history);
+  }, [searchHistoryManager]);
+
+  // 处理选择搜索记录
+  const handleSelectHistory = useCallback((keyword: string) => {
+    setSearchTerm(keyword);
+    setHistoryDropdownVisible(false);
+  }, []);
+
+  // 处理删除搜索记录
+  const handleDeleteHistory = useCallback((id: string) => {
+    searchHistoryManager.removeSearchHistory(id);
+    loadSearchHistory();
+  }, [searchHistoryManager, loadSearchHistory]);
+
+  // 处理清空搜索记录
+  const handleClearHistory = useCallback(() => {
+    searchHistoryManager.clearSearchHistory();
+    loadSearchHistory();
+    setHistoryDropdownVisible(false);
+  }, [searchHistoryManager, loadSearchHistory]);
+
   useEffect(() => {
     loadSources();
-  }, [loadSources]);
+    loadSearchHistory();
+  }, [loadSources, loadSearchHistory]);
 
   // 获取search-content的初始高度
   useEffect(() => {
@@ -237,6 +270,10 @@ const MusicSearch: React.FC = () => {
         // 清空之前的搜索结果
         setSearchResults([]);
 
+        // 添加搜索记录到历史
+        searchHistoryManager.addSearchHistory(searchTerm.trim());
+        loadSearchHistory(); // 更新搜索记录状态
+
         // 优先使用MusicSourceManager搜索
         try {
           const tracks = await searchWithMusicSourceManager(searchTerm, selectedSource);
@@ -308,13 +345,24 @@ const MusicSearch: React.FC = () => {
         setIsLoading(false);
       }
     }, 500), // 500ms 延迟
-    [searchTerm, selectedSource, searchWithMusicSourceManager, getSongsWithUrls]
+    [searchTerm, selectedSource, searchWithMusicSourceManager, getSongsWithUrls, searchHistoryManager, loadSearchHistory]
   );
 
   // 处理搜索事件
-  const handleSearch = () => {
+  const handleSearch = useCallback(() => {
     debouncedHandleSearch();
-  };
+  }, [debouncedHandleSearch]);
+
+  // 当搜索词改变时，触发搜索历史记录的选择
+  useEffect(() => {
+    if (searchTerm && searchTerm.trim()) {
+      // 添加一个小延迟以确保UI更新完成
+      const timer = setTimeout(() => {
+        debouncedHandleSearch();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [searchTerm, debouncedHandleSearch]);
 
   // 点击歌曲的处理函数
   const handleSongClick = useCallback(
@@ -454,18 +502,49 @@ const MusicSearch: React.FC = () => {
     <div className="music-search">
       <div className="search-header">
         <Space.Compact style={{ width: '100%' }}>
-          <Input
-            placeholder="搜索歌曲、歌手、专辑..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            onPressEnter={handleSearch}
-            style={{ 
-              flex: 1, 
-              backgroundColor: 'transparent',
-              color: 'white',
-              paddingLeft: '12px'
-            }}
-          />
+          <SearchHistoryDropdown
+            searchHistory={searchHistory}
+            onSelectHistory={handleSelectHistory}
+            onDeleteHistory={handleDeleteHistory}
+            onClearHistory={handleClearHistory}
+            visible={historyDropdownVisible}
+            onVisibleChange={setHistoryDropdownVisible}
+          >
+            <div className="search-input-with-history" style={{ flex: 1 }}>
+              <Input
+                placeholder="搜索歌曲、歌手、专辑..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onPressEnter={handleSearch}
+                onFocus={() => {
+                  if (searchHistory.length > 0) {
+                    setHistoryDropdownVisible(true);
+                  }
+                }}
+                style={{ 
+                  flex: 1, 
+                  backgroundColor: 'transparent',
+                  color: 'white',
+                  paddingLeft: '12px',
+                  paddingRight: '40px'
+                }}
+              />
+              <ClockCircleOutlined 
+                className={`history-trigger ${historyDropdownVisible ? 'active' : ''}`}
+                onClick={() => setHistoryDropdownVisible(!historyDropdownVisible)}
+                style={{
+                  position: 'absolute',
+                  right: '8px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  zIndex: 1,
+                  cursor: 'pointer',
+                  color: historyDropdownVisible ? '#1890ff' : 'rgba(255, 255, 255, 0.6)'
+                }}
+              />
+            </div>
+          </SearchHistoryDropdown>
+          
           <Select
             value={selectedSource}
             onChange={setSelectedSource}
