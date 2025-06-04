@@ -38,6 +38,10 @@
   opacity: 1;
 }
 
+.control_buttons {
+  gap: 6rem;
+}
+
 /* Fullscreen mode styles - 保持原有设计风格 */
 body.fullscreen-active {
   .layout {
@@ -96,6 +100,10 @@ body.fullscreen-active {
     
     .box {
       padding: 20px !important;
+    }
+
+    .control_buttons {
+      gap: 3rem;
     }
   }
 }
@@ -176,5 +184,12 @@ body.fullscreen-active {
         width: 0.5rem;
       }
     }
+  }
+}
+
+/* 移动端样式调整 */
+@media (max-width: 768px) {
+  .control_buttons {
+    gap: 3rem !important;
   }
 }

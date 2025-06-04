@@ -1,5 +1,5 @@
 import React from 'react';
-import { Dropdown, List, Button, Typography, Space, Popconfirm, MenuProps } from 'antd';
+import { Dropdown, List, Button, Typography, Space, Popconfirm } from 'antd';
 import { ClockCircleOutlined, DeleteOutlined, ClearOutlined, FireOutlined } from '@ant-design/icons';
 import { SearchHistoryItem } from '@/utils/searchHistory';
 import './SearchHistoryDropdown.scss';

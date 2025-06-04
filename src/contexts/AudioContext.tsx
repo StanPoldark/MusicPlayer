@@ -26,25 +26,44 @@ export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
   const { hasUserInteracted } = useAppSelector((state) => state.musicPlayer);
 
   // 初始化AudioContext
-  const initializeAudioContext = () => {
-    if (!audioContext) {
-      const context = new (window.AudioContext || (window as any).webkitAudioContext)();
-      setAudioContext(context);
-    } else if (audioContext.state === "suspended") {
-      audioContext.resume();
+  const initializeAudioContext = async () => {
+    if (!hasUserInteracted) {
+      return; // 如果用户还没有交互，不要创建AudioContext
+    }
+
+    try {
+      if (!audioContext) {
+        // 检查浏览器支持
+        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+        if (!AudioContextClass) {
+          console.warn('AudioContext not supported in this browser');
+          return;
+        }
+
+        const context = new AudioContextClass();
+        setAudioContext(context);
+        console.log('AudioContext created successfully');
+      } else if (audioContext.state === "suspended") {
+        await audioContext.resume();
+        console.log('AudioContext resumed successfully');
+      }
+    } catch (error) {
+      console.error("Failed to initialize AudioContext:", error);
+      // 不要设置audioContext为null，保持之前的状态
     }
   };
 
   useEffect(() => {
-    if (hasUserInteracted) {
+    if (hasUserInteracted && typeof window !== 'undefined') {
       initializeAudioContext();
     }
+    
     return () => {
-      if (audioContext) {
-        audioContext.close();
+      if (audioContext && audioContext.state !== 'closed') {
+        audioContext.close().catch(console.error);
       }
     };
-  }, [hasUserInteracted, audioContext]);
+  }, [hasUserInteracted]); // 移除audioContext依赖，避免无限循环
 
   return (
     <AudioContext.Provider

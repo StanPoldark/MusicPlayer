@@ -702,7 +702,7 @@ const MusicPlayer: React.FC<{ fullScreen: () => void }> = ({ fullScreen }) => {
           </div>
 
           {/* Center - Main control buttons */}
-          <div className="flex justify-center items-center gap-24">
+          <div className="control_buttons flex justify-center items-center">
             <motion.button
             onClick={() => dispatch(previousTrack())}
             className="playButton"
