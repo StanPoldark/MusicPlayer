@@ -28,6 +28,7 @@ import {
   setCurrentTime,
   setTrackDuration,
   setLoading,
+  setPlaybackRate,
 } from "@/redux/modules/musicPlayer/reducer";
 import { useAudio } from "@/contexts/AudioContext";
 import "./index.scss";
@@ -106,7 +107,8 @@ const MusicPlayer: React.FC<{ fullScreen: () => void }> = ({ fullScreen }) => {
     currentTime: reduxCurrentTime,
     duration: reduxDuration,
     isLoading: reduxIsLoading,
-    playlist
+    playlist,
+    playbackRate
   } = useAppSelector((state) => state.musicPlayer);
   const { setAudio } = useAudio();
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -508,6 +510,12 @@ const MusicPlayer: React.FC<{ fullScreen: () => void }> = ({ fullScreen }) => {
     audioRef.current.volume = volume;
   }, [volume]);
 
+  // 播放速度控制
+  useEffect(() => {
+    if (!audioRef.current) return;
+    audioRef.current.playbackRate = playbackRate;
+  }, [playbackRate]);
+
   // 预缓存下一首歌曲
   useEffect(() => {
     if (!currentTrack || !hasUserInteracted) return;
@@ -605,6 +613,21 @@ const MusicPlayer: React.FC<{ fullScreen: () => void }> = ({ fullScreen }) => {
           event.preventDefault();
           dispatch(toggleRepeatMode());
           break;
+        case 'Minus':
+        case 'NumpadSubtract':
+          event.preventDefault();
+          dispatch(setPlaybackRate(Math.max(0.25, playbackRate - 0.25)));
+          break;
+        case 'Equal':
+        case 'NumpadAdd':
+          event.preventDefault();
+          dispatch(setPlaybackRate(Math.min(2.0, playbackRate + 0.25)));
+          break;
+        case 'Digit0':
+        case 'Numpad0':
+          event.preventDefault();
+          dispatch(setPlaybackRate(1.0));
+          break;
       }
     };
 
@@ -615,7 +638,7 @@ const MusicPlayer: React.FC<{ fullScreen: () => void }> = ({ fullScreen }) => {
     return () => {
       document.removeEventListener('keydown', handleKeyPress);
     };
-  }, [hasUserInteracted, handlePlayClick, dispatch, volume, handleVolumeChange, isFullscreen, toggleFullscreen]);
+  }, [hasUserInteracted, handlePlayClick, dispatch, volume, handleVolumeChange, isFullscreen, toggleFullscreen, playbackRate]);
 
   // 全屏模式下显示快捷键提示
   const [showShortcuts, setShowShortcuts] = useState(false);
@@ -657,19 +680,19 @@ const MusicPlayer: React.FC<{ fullScreen: () => void }> = ({ fullScreen }) => {
       <div>
         <audio ref={audioRef} id="audio-element" preload="metadata" />
         <div
-          className="grid grid-cols-3 items-center mt-6 w-full relative"
+          className="grid grid-cols-3 items-center mt-6 w-full relative music-player-container"
           ref={volumeContainerRef}
         >
           {/* Left side - Volume control */}
           <div className="flex justify-start">
-          <div className="relative h-8">
+          <div className="relative h-8 volume-container">
               <motion.button
               onClick={() => setIsVolumeVisible(!isVolumeVisible)}
               className="text-white hover:text-blue-500 transition-colors relative"
                 whileHover={buttonVariants.hover}
                 whileTap={buttonVariants.tap}
-            >
-              <VolumeIcon size={32} />
+              >
+                <VolumeIcon size={isMobile ? 28 : 32} />
               </motion.button>
 
               <AnimatePresence>
@@ -704,12 +727,12 @@ const MusicPlayer: React.FC<{ fullScreen: () => void }> = ({ fullScreen }) => {
           {/* Center - Main control buttons */}
           <div className="control_buttons flex justify-center items-center">
             <motion.button
-            onClick={() => dispatch(previousTrack())}
-            className="playButton"
+              onClick={() => dispatch(previousTrack())}
+              className="playButton"
               whileHover={buttonVariants.hover}
               whileTap={buttonVariants.tap}
-          >
-            <SkipBack size={32} />
+            >
+              <SkipBack size={isMobile ? 28 : 32} />
             </motion.button>
 
             <motion.button
@@ -721,11 +744,11 @@ const MusicPlayer: React.FC<{ fullScreen: () => void }> = ({ fullScreen }) => {
               style={{ opacity: reduxIsLoading ? 0.6 : 1 }}
             >
               {reduxIsLoading ? (
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                <div className={`animate-spin rounded-full border-b-2 border-white ${isMobile ? 'h-7 w-7' : 'h-8 w-8'}`}></div>
               ) : actuallyPlaying ? (
-                <Pause size={32} />
+                <Pause size={isMobile ? 28 : 32} />
               ) : (
-                <Play size={32} />
+                <Play size={isMobile ? 28 : 32} />
               )}
             </motion.button>
 
@@ -735,44 +758,40 @@ const MusicPlayer: React.FC<{ fullScreen: () => void }> = ({ fullScreen }) => {
               whileHover={buttonVariants.hover}
               whileTap={buttonVariants.tap}
             >
-            <SkipForward size={32} />
+              <SkipForward size={isMobile ? 28 : 32} />
             </motion.button>
           </div>
 
           {/* Right side - Repeat and Fullscreen buttons */}
-          <div className="flex justify-end">
-          <div className="button-container">
-            <div className="button-group">
+          <div className="flex justify-end items-center">
+            <div className="button-container">
+              <div className="button-group">
                 <motion.button
-                onClick={() => dispatch(toggleRepeatMode())}
-                className={`playButton ${
-                  repeatMode === "off" ? "text-gray-400" : "text-blue-500"
-                }`}
-                title={`Repeat Mode: ${repeatMode}`}
+                  onClick={() => dispatch(toggleRepeatMode())}
+                  className={`playButton ${
+                    repeatMode === "off" ? "text-gray-400" : "text-blue-500"
+                  }`}
+                  title={`Repeat Mode: ${repeatMode}`}
                   whileHover={buttonVariants.hover}
                   whileTap={buttonVariants.tap}
-              >
-                <RepeatIcon size={32} />
+                >
+                  <RepeatIcon size={isMobile ? 28 : 32} />
                 </motion.button>
-              {!isMobile && <div className="divider">/</div>}
+                
+                {!isMobile && <div className="divider">/</div>}
+                
                 <motion.button
-                onClick={toggleFullscreen}
-                className="playButton"
-                title={isFullscreen ? "Exit Full Screen" : "Full Screen Mode"}
+                  onClick={toggleFullscreen}
+                  className="playButton"
+                  title={isFullscreen ? "Exit Full Screen" : "Full Screen Mode"}
                   whileHover={buttonVariants.hover}
                   whileTap={buttonVariants.tap}
-              >
-                {isMobile ? (
-                  isFullscreen ? (
-                    <ShrinkOutlined className="text-[32px] text-blue-500" />
-                  ) : null 
-                ) : (
-                    isFullscreen ? (
-                      <ShrinkOutlined className="text-[32px] text-blue-500" />
+                >
+                  {isFullscreen ? (
+                    <ShrinkOutlined className={`${isMobile ? 'text-[28px]' : 'text-[32px]'} text-blue-500`} />
                   ) : (
-                  <ArrowsAltOutlined className="text-[32px]" />
-                    )
-                )}
+                    <ArrowsAltOutlined className={`${isMobile ? 'text-[28px]' : 'text-[32px]'} text-white`} />
+                  )}
                 </motion.button>
               </div>
             </div>
@@ -780,9 +799,9 @@ const MusicPlayer: React.FC<{ fullScreen: () => void }> = ({ fullScreen }) => {
         </div>
 
         {/* Progress bar */}
-        <div className="mt-1 mb-1">
+        <div className="mt-1 mb-1 progress-section">
           <div className="flex items-center justify-between text-gray-400 text-sm pb-3 white_slider">
-            <span className="pr-2" style={{ marginRight: "0.5rem" }}>
+            <span className="pr-2 time-display" style={{ marginRight: "0.5rem" }}>
               {formatTime(progress)}
             </span>
             <motion.div 
@@ -807,7 +826,7 @@ const MusicPlayer: React.FC<{ fullScreen: () => void }> = ({ fullScreen }) => {
               }}
             />
             </motion.div>
-            <span className="pl-2">{formatTime(reduxDuration)}</span>
+            <span className="pl-2 time-display">{formatTime(reduxDuration)}</span>
           </div>
         </div>
 
@@ -823,6 +842,8 @@ const MusicPlayer: React.FC<{ fullScreen: () => void }> = ({ fullScreen }) => {
             >
               <div className="mb-1">快捷键:</div>
               <div>空格: 播放/暂停 | F: 全屏 | ESC: 退出</div>
+              <div>↑↓: 音量 | ←→: 切歌 | R: 循环模式</div>
+              <div>+/-: 播放速度 | 0: 重置速度</div>
             </motion.div>
           )}
         </AnimatePresence>

@@ -1,8 +1,77 @@
-.playButton{
+/* 强制重置SVG样式 */
+.playButton, .playButton * {
+  svg, svg * {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    stroke: currentColor !important;
+    fill: none !important;
+    stroke-width: 2 !important;
+    color: inherit !important;
+  }
+}
+
+.playButton {
+  margin: 0.8rem;
+  padding: 0.3rem;
+  width: 3rem;
+  height: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.3s ease;
   background-color: transparent;
-  color: white;
   border: none;
-  transition: transform 0.3s ease;
+  color: white;
+  cursor: pointer;
+  
+  /* 最小尺寸保护 */
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+
+  /* 修复 SVG 图标显示问题 */
+  svg {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    fill: currentColor !important;
+    color: inherit !important;
+    width: auto !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  &:hover {
+    background-color: rgba(4, 222, 255, 0.1);
+    color: #04deff;
+    transform: scale(1.1);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+  
+  /* 响应式调整 */
+  @media (max-width: 768px) {
+    margin: 0.6rem;
+    width: 2.8rem;
+    height: 2.8rem;
+  }
+  
+  @media (max-width: 576px) {
+    margin: 0.4rem;
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+  
+  @media (max-width: 480px) {
+    margin: 0.3rem;
+    width: 2.2rem;
+    height: 2.2rem;
+    min-width: 2.2rem;
+    min-height: 2.2rem;
+  }
 }
 
 .button-container {
@@ -15,6 +84,31 @@
   display: flex;
   align-items: center;
   cursor: pointer;
+  gap: 0.5rem; /* 添加基本间距 */
+  
+  /* 响应式调整 */
+  @media (max-width: 768px) {
+    gap: 0.3rem;
+  }
+  
+  @media (max-width: 576px) {
+    gap: 0.2rem;
+    
+    .playButton {
+      min-width: 40px;
+      min-height: 40px;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: center;
+    
+    .divider {
+      display: none; /* 垂直布局时隐藏分隔符 */
+    }
+  }
 }
 
 .button-group:hover .playButton:first-child {
@@ -40,6 +134,27 @@
 
 .control_buttons {
   gap: 6rem;
+  
+  /* 响应式间距调整 */
+  @media (max-width: 1200px) {
+    gap: 4rem;
+  }
+  
+  @media (max-width: 992px) {
+    gap: 3rem;
+  }
+  
+  @media (max-width: 768px) {
+    gap: 2.5rem;
+  }
+  
+  @media (max-width: 576px) {
+    gap: 2rem;
+  }
+  
+  @media (max-width: 480px) {
+    gap: 1.5rem;
+  }
 }
 
 /* Fullscreen mode styles - 保持原有设计风格 */
@@ -191,5 +306,132 @@ body.fullscreen-active {
 @media (max-width: 768px) {
   .control_buttons {
     gap: 3rem !important;
+  }
+  
+  /* 播放速度显示在移动端的调整 */
+  .playback-rate-display {
+    font-size: 11px !important;
+    padding: 6px 12px !important;
+    
+    &:before {
+      font-size: 10px;
+    }
+  }
+}
+
+/* 播放速度显示样式 */
+.playback-rate-display {
+  position: relative;
+  animation: fadeInScale 0.3s ease-out;
+  
+  &:before {
+    content: '🎵';
+    position: absolute;
+    left: -20px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    opacity: 0.7;
+  }
+}
+
+@keyframes fadeInScale {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* 播放控件hover效果增强 */
+.playButton {
+  position: relative;
+  
+  &:before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(4, 222, 255, 0.2);
+    transition: all 0.3s ease;
+    transform: translate(-50%, -50%);
+    z-index: -1;
+    pointer-events: none;
+  }
+  
+  &:hover:before {
+    width: 50px;
+    height: 50px;
+  }
+  
+  &:active:before {
+    width: 35px;
+    height: 35px;
+    background: rgba(4, 222, 255, 0.4);
+  }
+  
+  svg {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+/* 音量控制增强 */
+.volume-container {
+  .ant-slider-vertical {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 8px;
+    padding: 8px 4px;
+    border: 1px solid rgba(4, 222, 255, 0.2);
+  }
+}
+
+/* 进度条区域增强 */
+.progress-section {
+  .time-display {
+    font-family: 'Courier New', monospace;
+    font-weight: 500;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* 添加响应式网格布局优化 */
+.music-player-container {
+  .grid.grid-cols-3 {
+    /* 默认桌面布局 */
+    grid-template-columns: 1fr 2fr 1fr;
+    
+    @media (max-width: 768px) {
+      grid-template-columns: 0.8fr 2.4fr 0.8fr;
+      gap: 0.5rem;
+    }
+    
+    @media (max-width: 576px) {
+      grid-template-columns: 0.7fr 2.6fr 0.7fr;
+      gap: 0.3rem;
+    }
+    
+    @media (max-width: 480px) {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto auto auto;
+      gap: 1rem;
+      
+      /* 重新排列顺序：音量控制、播放按钮、其他控制 */
+      & > :nth-child(1) { order: 1; } /* 音量 */
+      & > :nth-child(2) { order: 2; } /* 播放控制 */
+      & > :nth-child(3) { order: 3; } /* 重复和全屏 */
+      
+      .flex.justify-start,
+      .flex.justify-end {
+        justify-content: center;
+      }
+    }
   }
 }

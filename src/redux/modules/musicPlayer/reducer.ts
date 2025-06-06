@@ -34,6 +34,7 @@ interface MusicPlayerState {
   duration: number; // 歌曲总时长
   isLoading: boolean; // 音频加载状态
   playbackHistory: { [trackId: number]: number }; // 播放历史记录（保存每首歌的播放位置）
+  playbackRate: number; // 播放速度倍数
 }
 
 const initialState: MusicPlayerState = {
@@ -48,7 +49,8 @@ const initialState: MusicPlayerState = {
   currentTime: 0,
   duration: 0,
   isLoading: false,
-  playbackHistory: {}
+  playbackHistory: {},
+  playbackRate: 1.0, // 默认1.0倍速
 };
 
 // 创建 Slice
@@ -165,6 +167,10 @@ const musicPlayerSlice = createSlice({
     setVolume: (state, action: PayloadAction<number>) => {
       state.volume = action.payload;
     },
+    // 设置播放速度
+    setPlaybackRate: (state, action: PayloadAction<number>) => {
+      state.playbackRate = Math.max(0.25, Math.min(2.0, action.payload)); // 限制在0.25x到2.0x之间
+    },
     updateSpectrumData: (state, action: PayloadAction<number[]>) => {
       state.spectrumData = action.payload;
     },
@@ -257,6 +263,7 @@ export const {
   nextTrack, 
   previousTrack, 
   setVolume,
+  setPlaybackRate,
   updateSpectrumData,
   setAnalyzing,
   addTrackToPlaylist,
