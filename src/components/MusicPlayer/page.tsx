@@ -780,7 +780,7 @@ const MusicPlayer: React.FC<{ fullScreen: () => void }> = ({ fullScreen }) => {
                 
                 {!isMobile && <div className="divider">/</div>}
                 
-                <motion.button
+                {!isMobile && <motion.button
                   onClick={toggleFullscreen}
                   className="playButton"
                   title={isFullscreen ? "Exit Full Screen" : "Full Screen Mode"}
@@ -792,7 +792,7 @@ const MusicPlayer: React.FC<{ fullScreen: () => void }> = ({ fullScreen }) => {
                   ) : (
                     <ArrowsAltOutlined className={`${isMobile ? 'text-[28px]' : 'text-[32px]'} text-white`} />
                   )}
-                </motion.button>
+                </motion.button>}
               </div>
             </div>
           </div>
