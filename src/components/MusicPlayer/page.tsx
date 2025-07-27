@@ -36,7 +36,6 @@ import { useAudio } from "@/contexts/AudioContext";
 import "./index.scss";
 import AudioSpectrum from "@/components/Spectrum/page";
 import { Slider } from "antd";
-import {FullscreenOutlined , FullscreenExitOutlined } from "@ant-design/icons";
 import mediaQuery from "@/utils/mediaQuery";
 import { motion, AnimatePresence } from "framer-motion";
 import { message } from "antd";
@@ -320,7 +319,6 @@ const MusicPlayer: React.FC<{ fullScreen: () => void }> = ({ fullScreen }) => {
 
   // 音频事件处理
   useEffect(() => {
-    console.log(FullscreenOutlined);
     if (!audioRef.current) return;
 
     const audio = audioRef.current;
