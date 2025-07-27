@@ -13,7 +13,6 @@ import simplifyResult from "@/utils/SongList/simplifyResult";
 import { List, Spin, message } from "antd";
 import { LucidePlus } from "lucide-react";
 import {
-  setCurrentTrack,
   addTrackToPlaylist,
 } from "@/redux/modules/musicPlayer/reducer";
 import {
@@ -276,7 +275,6 @@ const TrackList: React.FC = () => {
       const trackInReduxPlaylist = reduxPlaylist.find(t => t.id === track.id);
       if (trackInReduxPlaylist && trackInReduxPlaylist.lyric) {
         // Track exists in Redux with lyrics, use it directly
-        dispatch(setCurrentTrack(trackInReduxPlaylist));
         dispatch(addTrackToPlaylist({ from: "play", track: trackInReduxPlaylist }));
         return;
       }
@@ -285,7 +283,6 @@ const TrackList: React.FC = () => {
       const existingTrack = storedTracks.find((t) => t.id === track.id);
       if (existingTrack) {
         // Track already exists in local state, dispatch it without re-fetching
-        dispatch(setCurrentTrack(existingTrack));
         dispatch(addTrackToPlaylist({ from: "play", track: existingTrack }));
         return;
       }
@@ -313,7 +310,6 @@ const TrackList: React.FC = () => {
         setStoredTracks((prevTracks) => [...prevTracks, updatedTrack]);
 
         // Dispatch the updated track
-        dispatch(setCurrentTrack(updatedTrack));
         dispatch(addTrackToPlaylist({ from: "play", track: updatedTrack }));
         message.success(`正在播放: ${track.name}`);
       } catch (error) {

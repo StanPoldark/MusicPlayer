@@ -6,6 +6,7 @@ import playlistSlice from './modules/playList/reducer'
 import tracksSlice from './modules/SongList/reducer';
 import bgSlice from './modules/bg/reducer'
 import presetReducer from "./modules/audioEffects/reducer";
+import searchReducer from './modules/search/reducer';
 
 const rootReducer = {
   musicPlayer: musicPlayerReducer,
@@ -13,7 +14,8 @@ const rootReducer = {
   playlist:playlistSlice,
   tracks: tracksSlice,
   bg:bgSlice,
-  ae:presetReducer
+  ae:presetReducer,
+  search: searchReducer
 };
 
 const store = configureStore({
@@ -45,5 +47,12 @@ const store = configureStore({
 // 定义 RootState 和 Dispatch 类型
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
+
+// 导入 React Redux hooks
+import { useDispatch, useSelector, TypedUseSelectorHook } from 'react-redux';
+
+// 创建 typed hooks
+export const useAppDispatch = () => useDispatch<AppDispatch>();
+export const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
 
 export default store;

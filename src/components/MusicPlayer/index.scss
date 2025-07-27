@@ -133,7 +133,7 @@
 }
 
 .control_buttons {
-  gap: 6rem;
+  gap: 5rem;
   
   /* 响应式间距调整 */
   @media (max-width: 1200px) {
@@ -167,6 +167,10 @@ body.fullscreen-active {
       padding: 0;
       margin: 0;
       height: 100vh;
+      /* 应用类似浏览器开发者工具的缩放效果 */
+      transform: scale(0.85);
+      transform-origin: center center;
+      transition: transform 0.3s ease;
     }
     
     /* Hide the sidebars in fullscreen mode */

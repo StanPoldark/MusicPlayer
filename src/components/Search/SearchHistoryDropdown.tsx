@@ -1,7 +1,7 @@
 import React from 'react';
 import { Dropdown, List, Button, Typography, Space, Popconfirm } from 'antd';
 import { ClockCircleOutlined, DeleteOutlined, ClearOutlined, FireOutlined } from '@ant-design/icons';
-import { SearchHistoryItem } from '@/utils/searchHistory';
+import { SearchHistoryItem } from '@/redux/modules/search/reducer';
 import './SearchHistoryDropdown.scss';
 
 const { Text } = Typography;
@@ -127,4 +127,4 @@ const SearchHistoryDropdown: React.FC<SearchHistoryDropdownProps> = ({
   );
 };
 
-export default SearchHistoryDropdown; 
+export default SearchHistoryDropdown;

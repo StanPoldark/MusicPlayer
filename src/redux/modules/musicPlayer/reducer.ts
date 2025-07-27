@@ -194,13 +194,15 @@ const musicPlayerSlice = createSlice({
         // If it's a play action and track already exists, update the current track reference
         if (from === "play") {
           // 保存当前歌曲的播放位置
-          if (state.currentTrack && state.currentTime > 0) {
+          if (state.currentTrack && state.currentTime > 0 && state.currentTrack.id !== track.id) {
             state.playbackHistory[state.currentTrack.id] = state.currentTime;
           }
           state.currentTrack = state.playlist[existingTrackIndex];
           // 恢复播放位置
           state.currentTime = state.playbackHistory[track.id] || 0;
           state.isLoading = true;
+          // 确保播放状态正确
+          state.isPlaying = true;
         }
       } else {
         // If track doesn't exist, add it to the playlist
@@ -213,8 +215,14 @@ const musicPlayerSlice = createSlice({
           state.currentTrack = track;
           state.currentTime = 0; // 新歌曲从头开始
           state.isLoading = true;
+          // 确保播放状态正确
+          state.isPlaying = true;
         } else if (from === "add") {
-          state.playlist.push(track); // 添加到尾部
+          // 检查是否已存在相同ID的歌曲，避免重复添加
+          const isDuplicate = state.playlist.some(existingTrack => existingTrack.id === track.id);
+          if (!isDuplicate) {
+            state.playlist.push(track); // 添加到尾部
+          }
         }
       }
     },
@@ -252,6 +260,32 @@ const musicPlayerSlice = createSlice({
           state.currentTrack = state.playlist[newCurrentTrackIndex];
         }
       }
+    },
+    // 替换整个播放列表（用于歌单切换）
+    replacePlaylist: (state, action: PayloadAction<Track[]>) => {
+      const newPlaylist = action.payload;
+      
+      // 保存当前歌曲的播放位置
+      if (state.currentTrack && state.currentTime > 0) {
+        state.playbackHistory[state.currentTrack.id] = state.currentTime;
+      }
+      
+      // 替换播放列表
+      state.playlist = newPlaylist;
+      
+      // 如果当前歌曲不在新播放列表中，选择第一首歌曲
+      if (state.currentTrack && !newPlaylist.some(track => track.id === state.currentTrack!.id)) {
+        if (newPlaylist.length > 0) {
+          const newTrack = newPlaylist[0];
+          state.currentTrack = newTrack;
+          state.currentTime = state.playbackHistory[newTrack.id] || 0;
+          state.isLoading = true;
+        } else {
+          state.currentTrack = null;
+          state.currentTime = 0;
+          state.isPlaying = false;
+        }
+      }
     }
   }
 });
@@ -269,6 +303,7 @@ export const {
   addTrackToPlaylist,
   removeTrackFromPlaylist,
   reorderPlaylist,
+  replacePlaylist,
   toggleRepeatMode,
   Interacted,
   setCurrentTime,

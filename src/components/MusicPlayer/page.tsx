@@ -34,7 +34,7 @@ import { useAudio } from "@/contexts/AudioContext";
 import "./index.scss";
 import AudioSpectrum from "@/components/Spectrum/page";
 import { Slider } from "antd";
-import { ArrowsAltOutlined, ShrinkOutlined } from "@ant-design/icons";
+import { ArrowsAltOutlined , ShrinkOutlined } from "@ant-design/icons";
 import mediaQuery from "@/utils/mediaQuery";
 import { motion, AnimatePresence } from "framer-motion";
 import { message } from "antd";
@@ -777,22 +777,6 @@ const MusicPlayer: React.FC<{ fullScreen: () => void }> = ({ fullScreen }) => {
                 >
                   <RepeatIcon size={isMobile ? 28 : 32} />
                 </motion.button>
-                
-                {!isMobile && <div className="divider">/</div>}
-                
-                {!isMobile && <motion.button
-                  onClick={toggleFullscreen}
-                  className="playButton"
-                  title={isFullscreen ? "Exit Full Screen" : "Full Screen Mode"}
-                  whileHover={buttonVariants.hover}
-                  whileTap={buttonVariants.tap}
-                >
-                  {isFullscreen ? (
-                    <ShrinkOutlined className={`${isMobile ? 'text-[28px]' : 'text-[32px]'} text-blue-500`} />
-                  ) : (
-                    <ArrowsAltOutlined className={`${isMobile ? 'text-[28px]' : 'text-[32px]'} text-white`} />
-                  )}
-                </motion.button>}
               </div>
             </div>
           </div>
@@ -827,6 +811,20 @@ const MusicPlayer: React.FC<{ fullScreen: () => void }> = ({ fullScreen }) => {
             />
             </motion.div>
             <span className="pl-2 time-display">{formatTime(reduxDuration)}</span>
+                          
+                {!isMobile && <motion.button
+                  onClick={toggleFullscreen}
+                  className="playButton"
+                  title={isFullscreen ? "Exit Full Screen" : "Full Screen Mode"}
+                  whileHover={buttonVariants.hover}
+                  whileTap={buttonVariants.tap}
+                >
+                  {isFullscreen ? (
+                    <ShrinkOutlined className={`${isMobile ? 'text-[28px]' : 'text-[32px]'} text-blue-500`} />
+                  ) : (
+                    <ArrowsAltOutlined className={`${isMobile ? 'text-[28px]' : 'text-[32px]'} text-white`} />
+                  )}
+                </motion.button>}
           </div>
         </div>
 

@@ -1,11 +1,24 @@
 "use client";
-import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
-import { useAppDispatch, useAppSelector } from "@/hooks/hooks";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import { useAppDispatch, useAppSelector } from "@/redux";
 import { search, getSongUrls, checkSong, getlyric, getSongsDetail } from "@/app/api/music";
+import {
+  setSearchResults,
+  setSearchTerm,
+  setLoading,
+  setProcessingTrack,
+  addStoredTrack,
+  setError,
+  setSelectedSource,
+  setAvailableSources,
+  setSourceManagerVisible,
+  setSearchHistory,
+  setSearchContentHeight,
+  setHistoryDropdownVisible,
+} from "@/redux/modules/search/reducer";
 import { List, Input, Spin, message, Select, Button, Space, Tooltip } from "antd";
 import { LucidePlus, Search as SearchIcon } from "lucide-react";
 import {
-  setCurrentTrack,
   addTrackToPlaylist,
 } from "@/redux/modules/musicPlayer/reducer";
 import { Track } from "@/redux/modules/types";
@@ -18,10 +31,12 @@ import { MusicSourceManager } from "@/services/MusicSourceManager";
 import { SearchOptions } from "@/types/music";
 import MusicSourceManagerComponent from "@/components/MusicSourceManager";
 import AudioCacheManager from "@/utils/AudioCache";
-import { SearchHistoryManager, SearchHistoryItem } from "@/utils/searchHistory";
+import { SearchHistoryManager } from "@/utils/searchHistory";
 import SearchHistoryDropdown from "./SearchHistoryDropdown";
 
 const { Option } = Select;
+
+
 
 // 工具函数：确保 Track 对象的序列化安全
 const sanitizeTrack = (track: any): Track => {
@@ -58,31 +73,23 @@ const MusicSearch: React.FC = () => {
   // 使用 Redux 的 dispatch 方法
   const dispatch = useAppDispatch();
   const { playlist: reduxPlaylist } = useAppSelector((state) => state.musicPlayer);
-  
-  // 定义搜索结果的状态
-  const [searchResults, setSearchResults] = useState<Track[]>([]);
-  // 定义搜索关键词的状态
-  const [searchTerm, setSearchTerm] = useState<string>("");
-  // 定义加载状态的状态
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  // 定义当前处理中的歌曲ID状态
-  const [processingTrackId, setProcessingTrackId] = useState<number | null>(null);
-  // 定义已存储歌曲的状态
-  const [storedTracks, setStoredTracks] = useState<Track[]>([]);
-  // 定义错误状态
-  const [error, setError] = useState<string | null>(null);
-  // 音乐源相关状态
-  const [selectedSource, setSelectedSource] = useState<string>('all');
-  const [availableSources, setAvailableSources] = useState<any[]>([]);
-  const [sourceManagerVisible, setSourceManagerVisible] = useState(false);
-  
-  // 搜索记录相关状态
-  const [searchHistory, setSearchHistory] = useState<SearchHistoryItem[]>([]);
-  const [historyDropdownVisible, setHistoryDropdownVisible] = useState(false);
+  const {
+    searchResults,
+    searchTerm,
+    isLoading,
+    processingTrackId,
+    storedTracks,
+    error,
+    selectedSource,
+    availableSources,
+    sourceManagerVisible,
+    searchContentHeight,
+    historyDropdownVisible,
+    searchHistory
+  } = useAppSelector((state) => state.search);
   
   // 添加ref来获取search-content的高度
   const searchContentRef = useRef<HTMLDivElement>(null);
-  const [searchContentHeight, setSearchContentHeight] = useState<number>(0);
   
   // 添加组件挂载状态引用
   const isMountedRef = useRef(true);
@@ -105,13 +112,13 @@ const MusicSearch: React.FC = () => {
   // 加载可用的音乐源
   const loadSources = useCallback(() => {
     const sources = musicSourceManager.getEnabledSources();
-    setAvailableSources(sources);
+    dispatch(setAvailableSources(sources));
   }, [musicSourceManager]);
 
   // 加载搜索记录
   const loadSearchHistory = useCallback(() => {
     const history = searchHistoryManager.getSearchHistory();
-    setSearchHistory(history);
+    dispatch(setSearchHistory(history));
   }, [searchHistoryManager]);
 
   // 获取歌曲的 URL
@@ -145,9 +152,8 @@ const MusicSearch: React.FC = () => {
       });
       
       return updatedSongList;
-    } catch (error) {
-      safeLog.error("获取歌曲URL失败:", error);
-      setError("获取歌曲URL失败");
+    } catch (error) {      safeLog.error("获取歌曲URL失败:", error);
+      dispatch(setError('获取歌曲URL失败'));
       return songList; // 返回原始列表，不含URL
     }
   }, []);
@@ -189,8 +195,8 @@ const MusicSearch: React.FC = () => {
 
   // 处理选择搜索记录 - 移动到这里避免依赖问题
   const handleSelectHistory = useCallback(async (keyword: string) => {
-    setSearchTerm(keyword);
-    setHistoryDropdownVisible(false);
+    dispatch(setSearchTerm(keyword));
+    dispatch(setHistoryDropdownVisible(false));
     
     // 选择搜索历史后立即搜索
     if (!keyword.trim()) {
@@ -203,9 +209,9 @@ const MusicSearch: React.FC = () => {
       searchHistoryManager.addSearchHistory(keyword.trim());
       loadSearchHistory();
       
-      setIsLoading(true);
-      setError(null);
-      setSearchResults([]);
+      dispatch(setLoading(true));
+      dispatch(setError(null));
+      dispatch(setSearchResults([]));
 
       // 优先使用MusicSourceManager搜索
       try {
@@ -224,12 +230,12 @@ const MusicSearch: React.FC = () => {
           
           // 获取播放URL
           const updateTracks = await getSongsWithUrls(tracks);
-          setSearchResults(updateTracks);
+          dispatch(setSearchResults(updateTracks));
           
           if (updateTracks.length === 0) {
             message.info("未找到可播放的歌曲");
           }
-          setError(null);
+          dispatch(setError(null));
           return;
         }
       } catch (managerError) {
@@ -256,19 +262,19 @@ const MusicSearch: React.FC = () => {
         }
         
         const updateTracks = await getSongsWithUrls(searchTracks);
-        setSearchResults(updateTracks);
-        setError(null);
+        dispatch(setSearchResults(updateTracks));
+        dispatch(setError(null));
       } else {
         message.error("未找到结果");
-        setSearchResults([]);
+        dispatch(setSearchResults([]));
       }
     } catch (error) {
       safeLog.error("搜索错误:", error);
-      setError("搜索失败，请稍后重试");
+      dispatch(setError('搜索失败，请稍后重试'));
       message.error("搜索失败");
-      setSearchResults([]);
+      dispatch(setSearchResults([]));
     } finally {
-      setIsLoading(false);
+      dispatch(setLoading(false));
     }
   }, [searchHistoryManager, loadSearchHistory, selectedSource, searchWithMusicSourceManager, getSongsWithUrls]);
 
@@ -282,7 +288,7 @@ const MusicSearch: React.FC = () => {
   const handleClearHistory = useCallback(() => {
     searchHistoryManager.clearSearchHistory();
     loadSearchHistory();
-    setHistoryDropdownVisible(false);
+    dispatch(setHistoryDropdownVisible(false));
   }, [searchHistoryManager, loadSearchHistory]);
 
   useEffect(() => {
@@ -296,7 +302,7 @@ const MusicSearch: React.FC = () => {
       if (searchContentRef.current && searchResults.length === 0 && !searchTerm) {
         const height = searchContentRef.current.clientHeight;
         if (height > 0) {
-          setSearchContentHeight(height);
+          dispatch(setSearchContentHeight(height));
         }
       }
     };
@@ -331,12 +337,12 @@ const MusicSearch: React.FC = () => {
 
       try {
         // 设置加载状态为 true
-        setIsLoading(true);
-        setError(null);
+        dispatch(setLoading(true));
+        dispatch(setError(null));
         // 清空之前的搜索结果
-        setSearchResults([]);
+        dispatch(setSearchResults([]));
         // 隐藏搜索历史下拉框
-        setHistoryDropdownVisible(false);
+        dispatch(setHistoryDropdownVisible(false));
 
         // 优先使用MusicSourceManager搜索
         try {
@@ -355,13 +361,13 @@ const MusicSearch: React.FC = () => {
             
             // 获取播放URL
             const updateTracks = await getSongsWithUrls(tracks);
-            setSearchResults(updateTracks);
+            dispatch(setSearchResults(updateTracks));
             
             if (updateTracks.length === 0) {
               message.info("未找到可播放的歌曲");
             }
             // 搜索成功，清除错误状态
-            setError(null);
+            dispatch(setError(null));
             return;
           }
         } catch (managerError) {
@@ -394,23 +400,23 @@ const MusicSearch: React.FC = () => {
           const updateTracks = await getSongsWithUrls(searchTracks);
 
           // 设置搜索结果
-          setSearchResults(updateTracks);
+          dispatch(setSearchResults(updateTracks));
           // 搜索成功，清除错误状态
-          setError(null);
+          dispatch(setError(null));
         } else {
           // 如果搜索结果不存在，则提示用户未找到结果
           message.error("未找到结果");
-          setSearchResults([]);
+          dispatch(setSearchResults([]));
         }
       } catch (error) {
         // 如果搜索出错，则打印错误信息并提示用户搜索失败
         safeLog.error("搜索错误:", error);
-        setError("搜索失败，请稍后重试");
+        dispatch(setError('搜索失败，请稍后重试'));
         message.error("搜索失败");
-        setSearchResults([]);
+        dispatch(setSearchResults([]));
       } finally {
         // 设置加载状态为 false
-        setIsLoading(false);
+        dispatch(setLoading(false));
       }
     }, 500), // 500ms 延迟
     [searchTerm, selectedSource, searchWithMusicSourceManager, getSongsWithUrls]
@@ -430,7 +436,7 @@ const MusicSearch: React.FC = () => {
   const handleSongClick = useCallback(
     async (track: Track) => {
       // 防止重复处理
-      if (processingTrackId === track.id) return;
+      if (processingTrackId === String(track.id)) return;
       
       // 检查组件是否还挂载
       if (!isMountedRef.current) return;
@@ -438,12 +444,11 @@ const MusicSearch: React.FC = () => {
       // 检查歌曲是否已在Redux播放列表中
       const existingTrack = reduxTracksMap.get(track.id);
       if (existingTrack) {
-        dispatch(setCurrentTrack(existingTrack));
         dispatch(addTrackToPlaylist({ from: "play", track: existingTrack }));
         message.success(`正在播放: ${track.name}`);
         // 清除可能存在的错误状态
         if (isMountedRef.current) {
-          setError(null);
+          dispatch(setError(null));
         }
         return;
       }
@@ -451,8 +456,8 @@ const MusicSearch: React.FC = () => {
       try {
         // 设置当前处理的歌曲ID
         if (isMountedRef.current) {
-          setProcessingTrackId(track.id);
-          setError(null);
+          dispatch(setProcessingTrack(String(track.id)));
+          dispatch(setError(null));
         }
         
         // 调用 checkSong 方法检查歌曲是否可用
@@ -465,7 +470,7 @@ const MusicSearch: React.FC = () => {
         if (!songAvailableData.success) {
           message.error("抱歉，由于版权限制，此歌曲不可播放");
           if (isMountedRef.current) {
-            setProcessingTrackId(null);
+            dispatch(setProcessingTrack(null));
           }
           return;
         }
@@ -497,16 +502,15 @@ const MusicSearch: React.FC = () => {
 
         // 将更新后的歌曲对象添加到已存储歌曲中
         if (isMountedRef.current) {
-          setStoredTracks((prevTracks) => [...prevTracks, updatedTrack]);
+          dispatch(addStoredTrack(updatedTrack));
         }
 
-        // 设置当前歌曲并添加到播放列表
-        dispatch(setCurrentTrack(updatedTrack));
+        // 添加到播放列表
         dispatch(addTrackToPlaylist({ from: "play", track: updatedTrack }));
         
         // 主要操作成功，立即清除错误状态
         if (isMountedRef.current) {
-          setError(null);
+          dispatch(setError(null));
         }
         message.success(`正在播放: ${track.name}`);
         
@@ -527,13 +531,13 @@ const MusicSearch: React.FC = () => {
         if (isMountedRef.current) {
           const errorMessage = error instanceof Error ? error.message : String(error);
           safeLog.error("获取歌曲失败:", errorMessage);
-          setError("获取歌曲失败，请重试");
+          dispatch(setError('获取歌曲失败，请重试'));
           message.error("获取歌曲失败，请重试");
         }
       } finally {
         // 清除处理状态
         if (isMountedRef.current) {
-          setProcessingTrackId(null);
+          dispatch(setProcessingTrack(null));
         }
       }
     },
@@ -549,14 +553,14 @@ const MusicSearch: React.FC = () => {
         dispatch(addTrackToPlaylist({ from: "add", track: existingTrack }));
         message.success(`已添加 ${track.name} 到播放列表`);
         // 清除可能存在的错误状态
-        setError(null);
+        dispatch(setError(null));
         return;
       }
       
       try {
         // 设置当前处理的歌曲ID
-        setProcessingTrackId(track.id);
-        setError(null);
+        dispatch(setProcessingTrack(String(track.id)));
+        dispatch(setError(null));
         
         // 调用 checkSong 方法检查歌曲是否可用
         const songAvailableData = await checkSong(track.id);
@@ -564,7 +568,7 @@ const MusicSearch: React.FC = () => {
         // 如果歌曲不可用，则提示用户
         if (!songAvailableData.success) {
           message.error("抱歉，由于版权限制，此歌曲不可播放");
-          setProcessingTrackId(null);
+          dispatch(setProcessingTrack(null));
           return;
         }
         
@@ -580,13 +584,13 @@ const MusicSearch: React.FC = () => {
         });
 
         // 将更新后的歌曲对象添加到已存储歌曲中
-        setStoredTracks((prevTracks) => [...prevTracks, updatedTrack]);
+        dispatch(addStoredTrack(updatedTrack));
 
         // 添加到播放列表
         dispatch(addTrackToPlaylist({ from: "add", track: updatedTrack }));
         
         // 主要操作成功，立即清除错误状态
-        setError(null);
+        dispatch(setError(null));
         message.success(`已添加 ${track.name} 到播放列表`);
         
         // 预缓存音频（如果有URL）- 将此操作放在单独的try-catch中，避免影响主要功能
@@ -602,11 +606,11 @@ const MusicSearch: React.FC = () => {
         // 如果获取歌曲信息出错，则打印错误信息并提示用户
         const errorMessage = error instanceof Error ? error.message : String(error);
         safeLog.error("获取歌曲失败:", errorMessage);
-        setError("获取歌曲失败，请重试");
+        dispatch(setError('获取歌曲失败，请重试'));
         message.error("获取歌曲失败，请重试");
       } finally {
         // 清除处理状态
-        setProcessingTrackId(null);
+        dispatch(setProcessingTrack(null));
       }
     },
     [dispatch, processingTrackId, reduxTracksMap]
@@ -629,20 +633,20 @@ const MusicSearch: React.FC = () => {
             onDeleteHistory={handleDeleteHistory}
             onClearHistory={handleClearHistory}
             visible={historyDropdownVisible}
-            onVisibleChange={setHistoryDropdownVisible}
+            onVisibleChange={(visible) => dispatch(setHistoryDropdownVisible(visible))}
           >
             <div className="search-input-with-history" style={{ flex: 1 }}>
               <Input
                 placeholder="搜索歌曲、歌手、专辑..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => dispatch(setSearchTerm(e.target.value))}
                 onPressEnter={() => {
-                  setHistoryDropdownVisible(false);
+                  dispatch(setHistoryDropdownVisible(false));
                   handleSearch();
                 }}
                 onFocus={() => {
                   if (searchHistory.length > 0) {
-                    setHistoryDropdownVisible(true);
+                    dispatch(setHistoryDropdownVisible(true));
                   }
                 }}
                 style={{ 
@@ -655,7 +659,7 @@ const MusicSearch: React.FC = () => {
               />
               <ClockCircleOutlined 
                 className={`history-trigger ${historyDropdownVisible ? 'active' : ''}`}
-                onClick={() => setHistoryDropdownVisible(!historyDropdownVisible)}
+                onClick={() => dispatch(setHistoryDropdownVisible(!historyDropdownVisible))}
                 style={{
                   position: 'absolute',
                   right: '8px',
@@ -671,7 +675,7 @@ const MusicSearch: React.FC = () => {
           
           <Select
             value={selectedSource}
-            onChange={setSelectedSource}
+            onChange={(value) => dispatch(setSelectedSource(value))}
             style={{ width: 120 }}
             placeholder="选择音乐源"
           >
@@ -683,7 +687,7 @@ const MusicSearch: React.FC = () => {
             ))}
           </Select>
           <Button onClick={() => {
-            setHistoryDropdownVisible(false);
+            dispatch(setHistoryDropdownVisible(false));
             handleSearch();
           }} loading={isLoading}>
           <SearchIcon size={16} />
@@ -692,7 +696,7 @@ const MusicSearch: React.FC = () => {
           <Tooltip title="音乐源管理">
             <Button 
               icon={<SettingOutlined />} 
-              onClick={() => setSourceManagerVisible(true)}
+              onClick={() => dispatch(setSourceManagerVisible(true))}
             />
           </Tooltip>
         </Space.Compact>
@@ -724,12 +728,12 @@ const MusicSearch: React.FC = () => {
               overflowY: 'auto',
               paddingRight: '8px'
             }}
-            renderItem={(track) => (
+            renderItem={(track: Track) => (
               <List.Item
                 key={track.id}
                 onClick={() => handleSongClick(track)}
                 actions={[
-                  processingTrackId === track.id ? (
+                  processingTrackId === String(track.id) ? (
                     <Spin key="loading" size="small" />
                   ) : (
                     <div key="actions" style={{ display: 'flex', gap: '8px' }}>
@@ -782,7 +786,7 @@ const MusicSearch: React.FC = () => {
       <MusicSourceManagerComponent
         visible={sourceManagerVisible}
         onClose={() => {
-          setSourceManagerVisible(false);
+          dispatch(setSourceManagerVisible(false));
           // 重新加载可用音乐源
           loadSources();
         }}
