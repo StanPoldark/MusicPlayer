@@ -17,6 +17,8 @@ import {
   VolumeX,
   Repeat,
   Repeat1,
+  Maximize,
+  Minimize,
 } from "lucide-react";
 import {
   togglePlay,
@@ -34,7 +36,7 @@ import { useAudio } from "@/contexts/AudioContext";
 import "./index.scss";
 import AudioSpectrum from "@/components/Spectrum/page";
 import { Slider } from "antd";
-import { ArrowsAltOutlined , ShrinkOutlined } from "@ant-design/icons";
+import {FullscreenOutlined , FullscreenExitOutlined } from "@ant-design/icons";
 import mediaQuery from "@/utils/mediaQuery";
 import { motion, AnimatePresence } from "framer-motion";
 import { message } from "antd";
@@ -318,6 +320,7 @@ const MusicPlayer: React.FC<{ fullScreen: () => void }> = ({ fullScreen }) => {
 
   // 音频事件处理
   useEffect(() => {
+    console.log(FullscreenOutlined);
     if (!audioRef.current) return;
 
     const audio = audioRef.current;
@@ -810,7 +813,7 @@ const MusicPlayer: React.FC<{ fullScreen: () => void }> = ({ fullScreen }) => {
               }}
             />
             </motion.div>
-            <span className="pl-2 time-display">{formatTime(reduxDuration)}</span>
+            <span className="pl-4 time-display">{formatTime(reduxDuration)}</span>
                           
                 {!isMobile && <motion.button
                   onClick={toggleFullscreen}
@@ -818,11 +821,11 @@ const MusicPlayer: React.FC<{ fullScreen: () => void }> = ({ fullScreen }) => {
                   title={isFullscreen ? "Exit Full Screen" : "Full Screen Mode"}
                   whileHover={buttonVariants.hover}
                   whileTap={buttonVariants.tap}
-                >
+                > 
                   {isFullscreen ? (
-                    <ShrinkOutlined className={`${isMobile ? 'text-[28px]' : 'text-[32px]'} text-blue-500`} />
+                    <Maximize  className="text-blue-500 text-4xl pl-4" />
                   ) : (
-                    <ArrowsAltOutlined className={`${isMobile ? 'text-[28px]' : 'text-[32px]'} text-white`} />
+                    <Minimize className="text-white text-4xl pl-4" />
                   )}
                 </motion.button>}
           </div>
