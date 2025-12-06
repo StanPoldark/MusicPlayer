@@ -78,7 +78,6 @@ const MusicSearch: React.FC = () => {
     searchTerm,
     isLoading,
     processingTrackId,
-    storedTracks,
     error,
     selectedSource,
     availableSources,
@@ -113,13 +112,13 @@ const MusicSearch: React.FC = () => {
   const loadSources = useCallback(() => {
     const sources = musicSourceManager.getEnabledSources();
     dispatch(setAvailableSources(sources));
-  }, [musicSourceManager]);
+  }, [musicSourceManager, dispatch]);
 
   // 加载搜索记录
   const loadSearchHistory = useCallback(() => {
     const history = searchHistoryManager.getSearchHistory();
     dispatch(setSearchHistory(history));
-  }, [searchHistoryManager]);
+  }, [searchHistoryManager, dispatch]);
 
   // 获取歌曲的 URL
   const getSongsWithUrls = useCallback(async (songList: Track[]): Promise<Track[]> => {
@@ -156,7 +155,7 @@ const MusicSearch: React.FC = () => {
       dispatch(setError('获取歌曲URL失败'));
       return songList; // 返回原始列表，不含URL
     }
-  }, []);
+  }, [dispatch]);
 
   // 使用MusicSourceManager进行搜索
   const searchWithMusicSourceManager = useCallback(async (keyword: string, source?: string) => {
@@ -276,7 +275,7 @@ const MusicSearch: React.FC = () => {
     } finally {
       dispatch(setLoading(false));
     }
-  }, [searchHistoryManager, loadSearchHistory, selectedSource, searchWithMusicSourceManager, getSongsWithUrls]);
+  }, [dispatch, searchHistoryManager, loadSearchHistory, selectedSource, searchWithMusicSourceManager, getSongsWithUrls]);
 
   // 处理删除搜索记录
   const handleDeleteHistory = useCallback((id: string) => {
@@ -289,7 +288,7 @@ const MusicSearch: React.FC = () => {
     searchHistoryManager.clearSearchHistory();
     loadSearchHistory();
     dispatch(setHistoryDropdownVisible(false));
-  }, [searchHistoryManager, loadSearchHistory]);
+  }, [searchHistoryManager, loadSearchHistory, dispatch]);
 
   useEffect(() => {
     loadSources();
@@ -323,7 +322,7 @@ const MusicSearch: React.FC = () => {
       clearTimeout(timer);
       window.removeEventListener('resize', handleResize);
     };
-  }, [searchResults.length, searchTerm]);
+  }, [searchResults.length, searchTerm, dispatch]);
 
   // 使用 debounce 防止用户快速输入时多次触发搜索
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -541,7 +540,7 @@ const MusicSearch: React.FC = () => {
         }
       }
     },
-    [dispatch, storedTracks, processingTrackId, reduxTracksMap, isMountedRef]
+    [dispatch, processingTrackId, reduxTracksMap, isMountedRef, audioCache]
   );
 
   // 添加到播放列表的处理函数
@@ -613,7 +612,7 @@ const MusicSearch: React.FC = () => {
         dispatch(setProcessingTrack(null));
       }
     },
-    [dispatch, processingTrackId, reduxTracksMap]
+    [dispatch, reduxTracksMap, audioCache]
   );
 
   // 组件卸载时设置标志

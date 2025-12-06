@@ -42,7 +42,7 @@ export default function SnowfallBackground() {
     setSnowflakes(initialSnowflakes);
 
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  }, [windowSize.width, windowSize.height]);
 
   useEffect(() => {
     if (snowflakes.length === 0) return;
@@ -62,7 +62,7 @@ export default function SnowfallBackground() {
     });
 
     return () => cancelAnimationFrame(animationFrame);
-  }, [snowflakes, windowSize.height]);
+  }, [snowflakes, windowSize.height, windowSize.width]);
 
   return (
     <div className="fixed inset-0 pointer-events-none">

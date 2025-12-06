@@ -196,7 +196,6 @@ const ChangeBackground: React.FC = () => {
               display: "flex",
               alignItems: "center",
               gap: "8px",
-              backdropFilter: "blur(10px)",
               transition: "all 0.3s ease"
             }}
           >

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
+import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from "react";
 import { useAppSelector } from "@/hooks/hooks";
 
 // 定义AudioContextType接口
@@ -26,7 +26,7 @@ export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
   const { hasUserInteracted } = useAppSelector((state) => state.musicPlayer);
 
   // 初始化AudioContext
-  const initializeAudioContext = async () => {
+  const initializeAudioContext = useCallback(async () => {
     if (!hasUserInteracted) {
       return; // 如果用户还没有交互，不要创建AudioContext
     }
@@ -51,7 +51,7 @@ export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
       console.error("Failed to initialize AudioContext:", error);
       // 不要设置audioContext为null，保持之前的状态
     }
-  };
+  }, [hasUserInteracted, audioContext]);
 
   useEffect(() => {
     if (hasUserInteracted && typeof window !== 'undefined') {
@@ -63,7 +63,7 @@ export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
         audioContext.close().catch(console.error);
       }
     };
-  }, [hasUserInteracted]); // 移除audioContext依赖，避免无限循环
+  }, [hasUserInteracted, initializeAudioContext, audioContext]);
 
   return (
     <AudioContext.Provider

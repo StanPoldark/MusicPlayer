@@ -129,17 +129,19 @@ const MusicPlayer: React.FC<{ fullScreen: () => void }> = ({ fullScreen }) => {
   const audioCache = useMemo(() => AudioCacheManager.getInstance(), []);
 
   // Fullscreen toggle function
-  const toggleFullscreen = () => {
-    setIsFullscreen((prev) => !prev);
-    fullScreen();
-    
-    // 简单的全屏切换
-    if (!isFullscreen) {
-      document.body.classList.add("fullscreen-active");
-    } else {
-      document.body.classList.remove("fullscreen-active");
-    }
-  };
+  const toggleFullscreen = useCallback(() => {
+    setIsFullscreen((prev) => {
+      const newValue = !prev;
+      // 简单的全屏切换
+      if (newValue) {
+        document.body.classList.add("fullscreen-active");
+      } else {
+        document.body.classList.remove("fullscreen-active");
+      }
+      fullScreen();
+      return newValue;
+    });
+  }, [fullScreen]);
 
   // Memoized time formatting function
   const formatTime = useCallback((time: number) => {
@@ -237,7 +239,7 @@ const MusicPlayer: React.FC<{ fullScreen: () => void }> = ({ fullScreen }) => {
       console.error("Audio playback error:", error);
       message.error("播放出错，请重试");
     }
-  }, [audioContext, isPlaying, dispatch, hasUserInteracted, currentTrack, isAudioReady, initializeAudioContext]);
+  }, [isPlaying, dispatch, hasUserInteracted, currentTrack, isAudioReady, initializeAudioContext]);
 
   // 音频源管理 - 集成缓存功能
   useEffect(() => {
@@ -315,7 +317,7 @@ const MusicPlayer: React.FC<{ fullScreen: () => void }> = ({ fullScreen }) => {
     };
 
     loadAudioSource();
-  }, [currentTrack?.id, currentTrack?.url, lastTrackId, setAudio, dispatch, isPlaying, audioCache]);
+  }, [currentTrack, lastTrackId, setAudio, dispatch, isPlaying, audioCache]);
 
   // 音频事件处理
   useEffect(() => {
@@ -475,7 +477,7 @@ const MusicPlayer: React.FC<{ fullScreen: () => void }> = ({ fullScreen }) => {
       audio.removeEventListener("waiting", handleWaiting);
       audio.removeEventListener("canplaythrough", handleCanPlayThrough);
     };
-  }, [hasUserInteracted, isDragging, dispatch, repeatMode, isPlaying]);
+  }, [hasUserInteracted, isDragging, dispatch, repeatMode, isPlaying, currentTrack, audioCache]);
 
   // 同步actuallyPlaying状态与音频元素的实际状态
   useEffect(() => {
@@ -538,7 +540,7 @@ const MusicPlayer: React.FC<{ fullScreen: () => void }> = ({ fullScreen }) => {
         audioCache.preCacheAudio(firstTrack.url, firstTrack.id);
       }
     }
-  }, [currentTrack?.id, hasUserInteracted, audioCache, repeatMode, playlist]);
+  }, [currentTrack, hasUserInteracted, audioCache, repeatMode, playlist]);
 
   const handleVolumeChange = useCallback(
     (newVolume: number) => {

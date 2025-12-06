@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Row, Col, Drawer, Collapse } from "antd";
 import { AudioProvider } from "@/contexts/AudioContext";
 import MusicPlayer from "@/components/MusicPlayer/page";
@@ -28,7 +28,7 @@ export default function HomePage() {
   const [contentHeight, setContentHeight] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  const calculateContentHeight = () => {
+  const calculateContentHeight = useCallback(() => {
     const parent = collapseParentRef.current;
     if (!parent) return;
 
@@ -38,7 +38,7 @@ export default function HomePage() {
     const totalHeadersHeight = headerHeight * collapseItems.length;
 
     setContentHeight(Math.max(parentHeight - totalHeadersHeight, 200)); // 最小高度200px
-  };
+  }, [isMobile]);
 
   // 响应式高度调整
   useEffect(() => {
@@ -53,7 +53,7 @@ export default function HomePage() {
 
     resizeObserver.observe(collapseParentRef.current);
     return () => resizeObserver.disconnect();
-  }, []);
+  }, [calculateContentHeight]);
 
   // 生成带动态高度的collapseItems
   const getDynamicCollapseItems = () => {

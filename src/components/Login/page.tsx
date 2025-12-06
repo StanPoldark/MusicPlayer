@@ -69,15 +69,6 @@ const Login = () => {
     }
   }, []);
 
-  // 组件卸载时清理轮询
-  useEffect(() => {
-    if(localStorage.getItem("cookie"))     checkLoginStatus(localStorage.getItem("cookie") as string);
-
-    return () => {
-      cleanupPolling();
-    };
-  }, [cleanupPolling]);
-
   // 检查登录状态
   const checkLoginStatus = useCallback(async (cookie: string): Promise<boolean> => {
     try {
@@ -101,6 +92,15 @@ const Login = () => {
       return false;
     }
   }, [dispatch]);
+
+  // 组件卸载时清理轮询
+  useEffect(() => {
+    if(localStorage.getItem("cookie"))     checkLoginStatus(localStorage.getItem("cookie") as string);
+
+    return () => {
+      cleanupPolling();
+    };
+  }, [cleanupPolling, checkLoginStatus]);
   
   // Captcha登录方法
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {

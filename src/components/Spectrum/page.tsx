@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import * as Tone from "tone";
 import { useSelector } from "react-redux";
 import { throttle } from "lodash";
@@ -29,7 +29,7 @@ const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
   }>({});
 
   // Audio effect presets
-  const presets = {
+  const presets = useMemo(() => ({
     n: {
       reverb: 0.1,
       bass: 0,
@@ -58,7 +58,7 @@ const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
       treble: 0,
       compression: -20,
     },
-  };
+  }), []);
 
   // Initialize audio effects chain
   useEffect(() => {
@@ -109,7 +109,7 @@ const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
         cancelAnimationFrame(animationFrameId.current);
       }
     };
-  }, [audioContext, webAudioSourceNode, hasUserInteracted]);
+  }, [audioContext, webAudioSourceNode, hasUserInteracted, effectsChain]);
 
   // Apply audio effect preset based on the selected preset
   useEffect(() => {
@@ -151,30 +151,33 @@ const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
     if (effectsChain.gain) {
       effectsChain.gain.gain.value = selectedPreset === "n" ? 2 : 1;
     }
-  }, [selectedPreset]);
+  }, [selectedPreset, effectsChain, audioContext?.destination, presets]);
 
   // Spectrum visualization function (same as before)
-  const drawSpectrum = throttle(
-    (canvas: HTMLCanvasElement, arr: Uint8Array) => {
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
+  const drawSpectrumRef = useRef(
+    throttle(
+      (canvas: HTMLCanvasElement, arr: Uint8Array) => {
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
 
-      const { width, height } = canvas;
-      ctx.clearRect(0, 0, width, height);
+        const { width, height } = canvas;
+        ctx.clearRect(0, 0, width, height);
 
-      const barWidth = width / arr.length;
-      let x = 0;
+        const barWidth = width / arr.length;
+        let x = 0;
 
-      arr.forEach((value) => {
-        const barHeight = (value / 255) * height;
-        const hue = (value / 255) * 220; // Blue spectrum
-        ctx.fillStyle = `hsla(${hue}, 70%, 60%, ${value / 255})`;
-        ctx.fillRect(x, height - barHeight, barWidth, barHeight);
-        x += barWidth + 1;
-      });
-    },
-    16
+        arr.forEach((value) => {
+          const barHeight = (value / 255) * height;
+          const hue = (value / 255) * 220; // Blue spectrum
+          ctx.fillStyle = `hsla(${hue}, 70%, 60%, ${value / 255})`;
+          ctx.fillRect(x, height - barHeight, barWidth, barHeight);
+          x += barWidth + 1;
+        });
+      },
+      16
+    )
   );
+  const drawSpectrum = drawSpectrumRef.current;
 
   const drawStaticSpectrum = (canvas: HTMLCanvasElement) => {
     const ctx = canvas.getContext("2d");
@@ -218,7 +221,7 @@ const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
         cancelAnimationFrame(animationFrameId.current);
       }
     };
-  }, [analyserRef.current]);
+  }, [drawSpectrum]);
 
   return (
     <div className="flex flex-col items-center gap-4">
